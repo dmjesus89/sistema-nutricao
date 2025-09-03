@@ -1,0 +1,94 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: sistema-nutricao
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/nutricao_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+    default-schema: public
+
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:dmjesus89@gmail.com}
+    password: ${MAIL_PASSWORD:vuke fiiv micf ukxu}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080
+
+# Custom Application Properties
+app:
+  jwt:
+    secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
+    expiration: 86400000 # 24 hours
+    refresh-expiration: 604800000 # 7 days
+
+  email:
+    from: ${EMAIL_FROM:dmjesus89@gmail.com}
+    confirmation:
+      expiration: 86400000 # 24 hours
+    reset-password:
+      expiration: 3600000 # 1 hour
+
+  rate-limit:
+    login:
+      attempts: 5
+      window: 900 # 15 minutes in seconds
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+
+logging:
+  level:
+    com.nutrition: INFO
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/sistema-nutricao.log

@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: nutricao-postgres
+    environment:
+      POSTGRES_DB: nutricao_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nutricao-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: nutricao-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - nutricao-network
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: nutricao-mailhog
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    networks:
+      - nutricao-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  nutricao-network:
+    driver: bridge

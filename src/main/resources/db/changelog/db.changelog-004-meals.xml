@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- Epic 4.1 - Update Foods table to match corrected Food entity -->
+    <changeSet id="4.8-update-foods-table-columns" author="nutrition-system">
+
+        <!-- Add serving_unit column if it doesn't exist -->
+        <addColumn tableName="foods">
+            <column name="serving_unit" type="VARCHAR(20)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+
+
+        <!-- Update existing data with default serving units based on category -->
+        <sql>
+            UPDATE foods SET serving_unit = 'g' WHERE serving_unit IS NULL;
+        </sql>
+
+        <!-- Add some example serving units for different categories -->
+        <sql>
+            UPDATE foods SET serving_unit = 'ml' WHERE category = 'BEVERAGES' AND serving_unit = 'g';
+            UPDATE foods SET serving_unit = 'unidade' WHERE category = 'FRUITS' AND name LIKE '%Banana%';
+            UPDATE foods SET serving_unit = 'fatia' WHERE name LIKE '%Pão%';
+            UPDATE foods SET serving_unit = 'xícara' WHERE category = 'CEREALS_GRAINS' AND name LIKE '%Aveia%';
+        </sql>
+
+
+
+
+    </changeSet>
+
+    <!-- Epic 4.2 - Add missing FoodCategory enum value -->
+    <changeSet id="4.9-add-nuts-seeds-category" author="nutrition-system">
+        <comment>Add NUTS_SEEDS category that was referenced in meal planning</comment>
+
+        <!-- Update any existing foods that should be in NUTS_SEEDS category -->
+        <sql>
+            UPDATE foods SET category = 'NUTS_SEEDS'
+            WHERE (name LIKE '%Castanha%' OR name LIKE '%Amêndoa%' OR name LIKE '%Nozes%' OR
+                   name LIKE '%Amendoim%' OR name LIKE '%Chia%' OR name LIKE '%Linhaça%')
+              AND category = 'OTHER';
+        </sql>
+    </changeSet>
+
+    <!-- Epic 4.3 - Create Meal Plans Table (FIRST!) -->
+    <changeSet id="4.1-create-meal-plans-table" author="nutrition-system">
+        <createTable tableName="meal_plans">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)" defaultValue="ACTIVE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_calories" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_carbs" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_protein" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_fat" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consumed_calories" type="DECIMAL(8,2)" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consumed_carbs" type="DECIMAL(8,2)" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consumed_protein" type="DECIMAL(8,2)" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consumed_fat" type="DECIMAL(8,2)" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_generated" type="BOOLEAN" defaultValue="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="generated_at" type="TIMESTAMP">
+                <constraints nullable="true"/>
+            </column>
+            <column name="notes" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Foreign Key Constraints -->
+        <addForeignKeyConstraint baseTableName="meal_plans"
+                                 baseColumnNames="user_id"
+                                 constraintName="fk_meal_plans_user"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <!-- Unique Constraint - One plan per user per date -->
+        <addUniqueConstraint tableName="meal_plans"
+                             columnNames="user_id,date"
+                             constraintName="uk_meal_plans_user_date"/>
+
+        <!-- Indexes -->
+        <createIndex tableName="meal_plans" indexName="idx_meal_plans_user_date">
+            <column name="user_id"/>
+            <column name="date"/>
+        </createIndex>
+        <createIndex tableName="meal_plans" indexName="idx_meal_plans_status">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Epic 4.4 - Create Meals Table -->
+    <changeSet id="4.2-create-meals-table" author="nutrition-system">
+        <createTable tableName="meals">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="meal_plan_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="meal_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="target_calories" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_carbs" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_protein" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_fat" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consumed_calories" type="DECIMAL(8,2)" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consumed_carbs" type="DECIMAL(8,2)" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consumed_protein" type="DECIMAL(8,2)" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consumed_fat" type="DECIMAL(8,2)" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_completed" type="BOOLEAN" defaultValue="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="completed_at" type="TIMESTAMP">
+                <constraints nullable="true"/>
+            </column>
+            <column name="scheduled_time" type="TIME">
+                <constraints nullable="true"/>
+            </column>
+            <column name="order_index" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Foreign Key Constraints -->
+        <addForeignKeyConstraint baseTableName="meals"
+                                 baseColumnNames="meal_plan_id"
+                                 constraintName="fk_meals_meal_plan"
+                                 referencedTableName="meal_plans"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <!-- Indexes -->
+        <createIndex tableName="meals" indexName="idx_meals_plan_type">
+            <column name="meal_plan_id"/>
+            <column name="meal_type"/>
+        </createIndex>
+        <createIndex tableName="meals" indexName="idx_meals_completed">
+            <column name="is_completed"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Epic 4.5 - Create Meal Foods Table -->
+    <changeSet id="4.3-create-meal-foods-table" author="nutrition-system">
+        <createTable tableName="meal_foods">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="meal_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="food_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quantity_grams" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="serving_description" type="VARCHAR(100)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="calculated_calories" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="calculated_carbs" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="calculated_protein" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="calculated_fat" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_consumed" type="BOOLEAN" defaultValue="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consumed_quantity" type="DECIMAL(8,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="consumed_at" type="TIMESTAMP">
+                <constraints nullable="true"/>
+            </column>
+            <column name="notes" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Foreign Key Constraints -->
+        <addForeignKeyConstraint baseTableName="meal_foods"
+                                 baseColumnNames="meal_id"
+                                 constraintName="fk_meal_foods_meal"
+                                 referencedTableName="meals"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="meal_foods"
+                                 baseColumnNames="food_id"
+                                 constraintName="fk_meal_foods_food"
+                                 referencedTableName="foods"
+                                 referencedColumnNames="id"
+                                 onDelete="RESTRICT"/>
+
+        <!-- Indexes -->
+        <createIndex tableName="meal_foods" indexName="idx_meal_foods_meal">
+            <column name="meal_id"/>
+        </createIndex>
+        <createIndex tableName="meal_foods" indexName="idx_meal_foods_food">
+            <column name="food_id"/>
+        </createIndex>
+        <createIndex tableName="meal_foods" indexName="idx_meal_foods_consumed">
+            <column name="is_consumed"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Epic 4.6 - Create Extra Foods Table -->
+    <changeSet id="4.4-create-extra-foods-table" author="nutrition-system">
+        <createTable tableName="extra_foods">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="meal_plan_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="food_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quantity_grams" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="serving_description" type="VARCHAR(100)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="calculated_calories" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="calculated_carbs" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="calculated_protein" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="calculated_fat" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consumed_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="meal_type_hint" type="VARCHAR(20)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="notes" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Foreign Key Constraints -->
+        <addForeignKeyConstraint baseTableName="extra_foods"
+                                 baseColumnNames="meal_plan_id"
+                                 constraintName="fk_extra_foods_meal_plan"
+                                 referencedTableName="meal_plans"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="extra_foods"
+                                 baseColumnNames="food_id"
+                                 constraintName="fk_extra_foods_food"
+                                 referencedTableName="foods"
+                                 referencedColumnNames="id"
+                                 onDelete="RESTRICT"/>
+
+        <!-- Indexes -->
+        <createIndex tableName="extra_foods" indexName="idx_extra_foods_meal_plan">
+            <column name="meal_plan_id"/>
+        </createIndex>
+        <createIndex tableName="extra_foods" indexName="idx_extra_foods_food">
+            <column name="food_id"/>
+        </createIndex>
+        <createIndex tableName="extra_foods" indexName="idx_extra_foods_consumed_at">
+            <column name="consumed_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Epic 4.7 - Create Meal Check-ins Table -->
+    <changeSet id="4.5-create-meal-checkins-table" author="nutrition-system">
+        <createTable tableName="meal_checkins">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="meal_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="completion_percentage" type="INTEGER" defaultValue="100">
+                <constraints nullable="false"/>
+            </column>
+            <column name="actual_calories" type="DECIMAL(8,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="actual_carbs" type="DECIMAL(8,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="actual_protein" type="DECIMAL(8,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="actual_fat" type="DECIMAL(8,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="satisfaction_rating" type="INTEGER">
+                <constraints nullable="true"/>
+            </column>
+            <column name="notes" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="checked_in_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Foreign Key Constraints -->
+        <addForeignKeyConstraint baseTableName="meal_checkins"
+                                 baseColumnNames="meal_id"
+                                 constraintName="fk_meal_checkins_meal"
+                                 referencedTableName="meals"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="meal_checkins"
+                                 baseColumnNames="user_id"
+                                 constraintName="fk_meal_checkins_user"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <!-- Unique Constraint - One check-in per meal -->
+        <addUniqueConstraint tableName="meal_checkins"
+                             columnNames="meal_id"
+                             constraintName="uk_meal_checkins_meal"/>
+
+        <!-- Indexes -->
+        <createIndex tableName="meal_checkins" indexName="idx_meal_checkins_user">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex tableName="meal_checkins" indexName="idx_meal_checkins_date">
+            <column name="checked_in_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Epic 4.8 - Add Check Constraints -->
+    <changeSet id="4.6-add-check-constraints" author="nutrition-system">
+        <!-- Meal Type Enum -->
+        <sql>
+            ALTER TABLE meals ADD CONSTRAINT ck_meals_meal_type
+                CHECK (meal_type IN ('BREAKFAST', 'MORNING_SNACK', 'LUNCH', 'AFTERNOON_SNACK', 'DINNER', 'EVENING_SNACK', 'PRE_WORKOUT', 'POST_WORKOUT'));
+        </sql>
+
+        <!-- Meal Plan Status Enum -->
+        <sql>
+            ALTER TABLE meal_plans ADD CONSTRAINT ck_meal_plans_status
+                CHECK (status IN ('ACTIVE', 'COMPLETED', 'CANCELLED', 'ARCHIVED'));
+        </sql>
+
+
+
+
+        <!-- Positive Quantities -->
+        <sql>
+            ALTER TABLE meal_foods ADD CONSTRAINT ck_meal_foods_quantity
+                CHECK (quantity_grams > 0);
+        </sql>
+
+        <sql>
+            ALTER TABLE extra_foods ADD CONSTRAINT ck_extra_foods_quantity
+                CHECK (quantity_grams > 0);
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,185 @@
+package com.nutrition.application.service;
+
+
+import com.nutrition.application.dto.auth.ApiResponse;
+import com.nutrition.infrastructure.repository.EmailConfirmationTokenRepository;
+import com.nutrition.infrastructure.repository.FoodRepository;
+import com.nutrition.infrastructure.repository.PasswordResetTokenRepository;
+import com.nutrition.infrastructure.repository.RefreshTokenRepository;
+import com.nutrition.infrastructure.repository.SupplementRepository;
+import com.nutrition.infrastructure.repository.UserFoodPreferenceRepository;
+import com.nutrition.infrastructure.repository.UserProfileRepository;
+import com.nutrition.infrastructure.repository.UserRepository;
+import com.nutrition.infrastructure.repository.UserSupplementPreferenceRepository;
+import com.nutrition.infrastructure.repository.WeightHistoryRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class AdminService {
+
+    private final UserRepository userRepository;
+    private final UserProfileRepository profileRepository;
+    private final FoodRepository foodRepository;
+    private final SupplementRepository supplementRepository;
+    private final UserFoodPreferenceRepository foodPreferenceRepository;
+    private final UserSupplementPreferenceRepository supplementPreferenceRepository;
+    private final WeightHistoryRepository weightHistoryRepository;
+    private final EmailConfirmationTokenRepository confirmationTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+
+    public ApiResponse<Map<String, Object>> getDashboardStats() {
+        try {
+            Map<String, Object> stats = new HashMap<>();
+
+            // Estatísticas gerais
+            stats.put("total_users", userRepository.count());
+            stats.put("active_users", userRepository.countRegularUsers());
+            stats.put("admin_users", userRepository.countAdminUsers());
+            stats.put("total_profiles", profileRepository.count());
+            stats.put("profiles_with_calculations", profileRepository.countProfilesWithCalculatedMetrics());
+
+            // Estatísticas de alimentos
+            stats.put("total_foods", foodRepository.countActiveFoods());
+            stats.put("verified_foods", foodRepository.countVerifiedFoods());
+
+            // Estatísticas de suplementos
+            stats.put("total_supplements", supplementRepository.countActiveSupplements());
+            stats.put("verified_supplements", supplementRepository.countVerifiedSupplements());
+
+            // Estatísticas de preferências
+            stats.put("food_preferences", foodPreferenceRepository.count());
+            stats.put("supplement_preferences", supplementPreferenceRepository.count());
+
+            // Estatísticas de peso
+            stats.put("weight_records", weightHistoryRepository.count());
+
+            log.info("Dashboard stats generated successfully");
+            return ApiResponse.success(stats);
+
+        } catch (Exception e) {
+            log.error("Error generating dashboard stats: {}", e.getMessage());
+            return ApiResponse.error("Erro ao gerar estatísticas");
+        }
+    }
+
+    public ApiResponse<Map<String, Object>> getFoodStatistics() {
+        try {
+            Map<String, Object> stats = new HashMap<>();
+
+            stats.put("total_active", foodRepository.countActiveFoods());
+            stats.put("total_verified", foodRepository.countVerifiedFoods());
+
+            // Contagem por categoria
+            List<Object[]> categoryStats = foodRepository.countFoodsByCategory();
+            Map<String, Long> categoryCounts = new HashMap<>();
+            for (Object[] stat : categoryStats) {
+                categoryCounts.put(stat[0].toString(), ((Number) stat[1]).longValue());
+            }
+            stats.put("by_category", categoryCounts);
+
+            log.info("Food statistics generated successfully");
+            return ApiResponse.success(stats);
+
+        } catch (Exception e) {
+            log.error("Error generating food statistics: {}", e.getMessage());
+            return ApiResponse.error("Erro ao gerar estatísticas de alimentos");
+        }
+    }
+
+    public ApiResponse<Map<String, Object>> getSupplementStatistics() {
+        try {
+            Map<String, Object> stats = new HashMap<>();
+
+            stats.put("total_active", supplementRepository.countActiveSupplements());
+            stats.put("total_verified", supplementRepository.countVerifiedSupplements());
+
+            // Contagem por categoria
+            List<Object[]> categoryStats = supplementRepository.countSupplementsByCategory();
+            Map<String, Long> categoryCounts = new HashMap<>();
+            for (Object[] stat : categoryStats) {
+                categoryCounts.put(stat[0].toString(), ((Number) stat[1]).longValue());
+            }
+            stats.put("by_category", categoryCounts);
+
+            log.info("Supplement statistics generated successfully");
+            return ApiResponse.success(stats);
+
+        } catch (Exception e) {
+            log.error("Error generating supplement statistics: {}", e.getMessage());
+            return ApiResponse.error("Erro ao gerar estatísticas de suplementos");
+        }
+    }
+
+    public ApiResponse<Map<String, Object>> getUserStatistics() {
+        try {
+            Map<String, Object> stats = new HashMap<>();
+
+            // Estatísticas básicas
+            stats.put("total_users", userRepository.count());
+            stats.put("regular_users", userRepository.countRegularUsers());
+            stats.put("admin_users", userRepository.countAdminUsers());
+
+            // Estatísticas de perfis
+            stats.put("users_with_profile", profileRepository.count());
+            stats.put("profiles_with_calculations", profileRepository.countProfilesWithCalculatedMetrics());
+
+            // Médias
+            Double avgWeight = profileRepository.getAverageWeight();
+            Double avgHeight = profileRepository.getAverageHeight();
+            stats.put("average_weight", avgWeight != null ? avgWeight : 0.0);
+            stats.put("average_height", avgHeight != null ? avgHeight : 0.0);
+
+            log.info("User statistics generated successfully");
+            return ApiResponse.success(stats);
+
+        } catch (Exception e) {
+            log.error("Error generating user statistics: {}", e.getMessage());
+            return ApiResponse.error("Erro ao gerar estatísticas de usuários");
+        }
+    }
+
+    @Transactional
+    public ApiResponse<String> seedDatabase() {
+        try {
+            // Este método pode ser expandido para popular com mais dados de exemplo
+            // Por enquanto, os dados de exemplo já estão no Liquibase
+
+            log.info("Database seeded successfully (using Liquibase data)");
+            return ApiResponse.success("Base de dados populada com dados de exemplo");
+
+        } catch (Exception e) {
+            log.error("Error seeding database: {}", e.getMessage());
+            return ApiResponse.error("Erro ao popular base de dados");
+        }
+    }
+
+    @Transactional
+    public ApiResponse<String> performMaintenance() {
+        try {
+            LocalDateTime now = LocalDateTime.now();
+
+            // Limpar tokens expirados
+            confirmationTokenRepository.deleteExpiredTokens(now);
+            passwordResetTokenRepository.deleteExpiredTokens(now);
+            refreshTokenRepository.cleanupTokens(now);
+
+            log.info("Database maintenance completed successfully");
+            return ApiResponse.success("Manutenção da base de dados realizada com sucesso");
+
+        } catch (Exception e) {
+            log.error("Error performing database maintenance: {}", e.getMessage());
+            return ApiResponse.error("Erro durante manutenção da base de dados");
+        }
+    }
+}

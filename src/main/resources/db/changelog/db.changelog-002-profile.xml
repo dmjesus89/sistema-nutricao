@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- Create User Profiles Table -->
+    <changeSet id="006-create-user-profiles-table" author="nutrition-system">
+        <createTable tableName="user_profiles">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="birth_date" type="DATE"/>
+            <column name="gender" type="VARCHAR(10)"/>
+            <column name="height" type="DECIMAL(5,2)"/>
+            <column name="current_weight" type="DECIMAL(5,2)"/>
+            <column name="target_weight" type="DECIMAL(5,2)"/>
+            <column name="target_date" type="DATE"/>
+            <column name="activity_level" type="VARCHAR(20)" defaultValue="SEDENTARY">
+                <constraints nullable="false"/>
+            </column>
+            <column name="goal" type="VARCHAR(20)" defaultValue="MAINTAIN_WEIGHT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="basal_metabolic_rate" type="DECIMAL(7,2)"/>
+            <column name="total_daily_energy_expenditure" type="DECIMAL(7,2)"/>
+            <column name="daily_calories" type="DECIMAL(7,2)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="user_profiles"
+                                 baseColumnNames="user_id"
+                                 constraintName="fk_user_profiles_user_id"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_user_profiles_user_id" tableName="user_profiles">
+            <column name="user_id"/>
+        </createIndex>
+
+        <createIndex indexName="idx_user_profiles_gender" tableName="user_profiles">
+            <column name="gender"/>
+        </createIndex>
+
+        <createIndex indexName="idx_user_profiles_activity_level" tableName="user_profiles">
+            <column name="activity_level"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Create Weight History Table -->
+    <changeSet id="007-create-weight-history-table" author="nutrition-system">
+        <createTable tableName="weight_history">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="weight" type="DECIMAL(5,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recorded_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="notes" type="VARCHAR(500)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="weight_history"
+                                 baseColumnNames="user_id"
+                                 constraintName="fk_weight_history_user_id"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <addUniqueConstraint tableName="weight_history"
+                             columnNames="user_id, recorded_date"
+                             constraintName="uk_weight_history_user_date"/>
+
+        <createIndex indexName="idx_weight_history_user_id" tableName="weight_history">
+            <column name="user_id"/>
+        </createIndex>
+
+        <createIndex indexName="idx_weight_history_recorded_date" tableName="weight_history">
+            <column name="recorded_date"/>
+        </createIndex>
+
+        <createIndex indexName="idx_weight_history_user_date" tableName="weight_history">
+            <column name="user_id"/>
+            <column name="recorded_date"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Add constraints for valid enum values using SQL -->
+    <changeSet id="008-add-profile-enum-constraints" author="nutrition-system">
+        <comment>Add check constraints for enum values and valid ranges</comment>
+
+        <!-- Constraints para user_profiles -->
+        <sql>
+            ALTER TABLE user_profiles
+                ADD CONSTRAINT chk_user_profiles_gender
+                    CHECK (gender IN ('MALE', 'FEMALE', 'OTHER'));
+        </sql>
+
+        <sql>
+            ALTER TABLE user_profiles
+                ADD CONSTRAINT chk_user_profiles_activity_level
+                    CHECK (activity_level IN ('SEDENTARY', 'LIGHTLY_ACTIVE', 'MODERATELY_ACTIVE', 'VERY_ACTIVE', 'EXTREMELY_ACTIVE'));
+        </sql>
+
+        <sql>
+            ALTER TABLE user_profiles
+                ADD CONSTRAINT chk_user_profiles_goal
+                    CHECK (goal IN ('LOSE_WEIGHT', 'MAINTAIN_WEIGHT', 'GAIN_WEIGHT'));
+        </sql>
+
+        <sql>
+            ALTER TABLE user_profiles
+                ADD CONSTRAINT chk_user_profiles_height_range
+                    CHECK (height BETWEEN 100 AND 250);
+        </sql>
+
+        <sql>
+            ALTER TABLE user_profiles
+                ADD CONSTRAINT chk_user_profiles_current_weight_range
+                    CHECK (current_weight BETWEEN 30 AND 300);
+        </sql>
+
+        <sql>
+            ALTER TABLE user_profiles
+                ADD CONSTRAINT chk_user_profiles_target_weight_range
+                    CHECK (target_weight BETWEEN 30 AND 300);
+        </sql>
+
+        <!-- Constraints para weight_history -->
+        <sql>
+            ALTER TABLE weight_history
+                ADD CONSTRAINT chk_weight_history_weight_range
+                    CHECK (weight BETWEEN 30 AND 300);
+        </sql>
+    </changeSet>
+
+    <!-- Create sample data for testing -->
+    <changeSet id="009-create-sample-profile-data" author="nutrition-system" context="dev">
+        <comment>Sample profile data for development</comment>
+
+        <!-- Sample user for testing (if admin user exists) -->
+        <sql>
+            INSERT INTO user_profiles (user_id, birth_date, gender, height, current_weight, target_weight, activity_level, goal, basal_metabolic_rate, total_daily_energy_expenditure, daily_calories)
+            SELECT
+                u.id,
+                '1985-05-15'::DATE,
+                    'MALE',
+                180.00,
+                80.00,
+                75.00,
+                'MODERATELY_ACTIVE',
+                'LOSE_WEIGHT',
+                1800.00,
+                2790.00,
+                2290.00
+            FROM users u
+            WHERE u.email = 'admin@sistema-nutricao.com'
+              AND NOT EXISTS (SELECT 1 FROM user_profiles up WHERE up.user_id = u.id);
+        </sql>
+
+        <!-- Sample weight history for the admin user -->
+        <sql>
+            INSERT INTO weight_history (user_id, weight, recorded_date, notes)
+            SELECT
+                u.id,
+                80.00,
+                CURRENT_DATE - INTERVAL '30 days',
+                'Peso inicial'
+            FROM users u
+            WHERE u.email = 'admin@sistema-nutricao.com'
+              AND NOT EXISTS (
+                SELECT 1 FROM weight_history wh
+                WHERE wh.user_id = u.id
+              AND wh.recorded_date = CURRENT_DATE - INTERVAL '30 days'
+                );
+        </sql>
+
+        <sql>
+            INSERT INTO weight_history (user_id, weight, recorded_date, notes)
+            SELECT
+                u.id,
+                79.5,
+                CURRENT_DATE - INTERVAL '15 days',
+                'Progresso quinzenal'
+            FROM users u
+            WHERE u.email = 'admin@sistema-nutricao.com'
+              AND NOT EXISTS (
+                SELECT 1 FROM weight_history wh
+                WHERE wh.user_id = u.id
+              AND wh.recorded_date = CURRENT_DATE - INTERVAL '15 days'
+                );
+        </sql>
+
+        <sql>
+            INSERT INTO weight_history (user_id, weight, recorded_date, notes)
+            SELECT
+                u.id,
+                78.8,
+                CURRENT_DATE,
+                'Peso atual'
+            FROM users u
+            WHERE u.email = 'admin@sistema-nutricao.com'
+              AND NOT EXISTS (
+                SELECT 1 FROM weight_history wh
+                WHERE wh.user_id = u.id
+                  AND wh.recorded_date = CURRENT_DATE
+            );
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
