@@ -50,7 +50,7 @@ spring:
         jwt:
           issuer-uri: http://localhost:8080
 
-# Custom Application Properties
+
 app:
   frontend:
     url: ${FRONTEND_URL}
@@ -80,13 +80,3 @@ management:
   endpoint:
     health:
       show-details: when_authorized
-
-#logging:
-#  level:
-#    com.nutrition: INFO
-#    org.springframework.security: DEBUG
-#  pattern:
-#    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-#    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-#  file:
-#    name: logs/sistema-nutricao.log
