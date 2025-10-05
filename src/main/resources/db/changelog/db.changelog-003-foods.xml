@@ -297,6 +297,234 @@
 
         <!-- Frutas -->
         <insert tableName="foods">
+            <column name="name" value="Morango"/>
+            <column name="description" value="Morango fresco, rico em vitamina C"/>
+            <column name="category" value="FRUITS"/>
+            <column name="calories_per_100g" value="32"/>
+            <column name="carbs_per_100g" value="7.7"/>
+            <column name="protein_per_100g" value="0.7"/>
+            <column name="fat_per_100g" value="0.3"/>
+            <column name="fiber_per_100g" value="2.0"/>
+            <column name="sugar_per_100g" value="4.9"/>
+            <column name="serving_size" value="100"/>
+            <column name="serving_description" value="1 xícara"/>
+            <column name="source" value="USDA"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <insert tableName="foods">
+            <column name="name" value="Laranja"/>
+            <column name="description" value="Laranja pera, rica em vitamina C"/>
+            <column name="category" value="FRUITS"/>
+            <column name="calories_per_100g" value="47"/>
+            <column name="carbs_per_100g" value="12"/>
+            <column name="protein_per_100g" value="0.9"/>
+            <column name="fat_per_100g" value="0.1"/>
+            <column name="fiber_per_100g" value="2.4"/>
+            <column name="sugar_per_100g" value="9.0"/>
+            <column name="serving_size" value="130"/>
+            <column name="serving_description" value="1 unidade média"/>
+            <column name="source" value="TACO"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <insert tableName="foods">
+            <column name="name" value="Queijo Minas Frescal"/>
+            <column name="description" value="Queijo Minas frescal, fonte de cálcio e proteína"/>
+            <column name="category" value="DAIRY"/>
+            <column name="calories_per_100g" value="264"/>
+            <column name="carbs_per_100g" value="3.2"/>
+            <column name="protein_per_100g" value="17"/>
+            <column name="fat_per_100g" value="21"/>
+            <column name="sodium_per_100g" value="300"/>
+            <column name="serving_size" value="30"/>
+            <column name="serving_description" value="1 fatia média"/>
+            <column name="source" value="TACO"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <!-- Leguminosas -->
+        <insert tableName="foods">
+            <column name="name" value="Feijão Carioca"/>
+            <column name="description" value="Feijão carioca cozido"/>
+            <column name="category" value="VEGETABLES"/>
+            <column name="calories_per_100g" value="127"/>
+            <column name="carbs_per_100g" value="23"/>
+            <column name="protein_per_100g" value="8.7"/>
+            <column name="fat_per_100g" value="0.5"/>
+            <column name="fiber_per_100g" value="8.3"/>
+            <column name="sodium_per_100g" value="2"/>
+            <column name="serving_size" value="100"/>
+            <column name="serving_description" value="1 concha média"/>
+            <column name="source" value="TACO"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <!-- Café da manhã -->
+        <insert tableName="foods">
+            <column name="name" value="Claras de Ovo"/>
+            <column name="description" value="Claras de ovo mexidas"/>
+            <column name="category" value="PROTEINS"/>
+            <column name="calories_per_100g" value="52"/>
+            <column name="carbs_per_100g" value="0.7"/>
+            <column name="protein_per_100g" value="11"/>
+            <column name="fat_per_100g" value="0.2"/>
+            <column name="serving_size" value="33"/>
+            <column name="serving_description" value="1 clara média"/>
+            <column name="source" value="USDA"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <insert tableName="foods">
+            <column name="name" value="Ovos Inteiros mexidos"/>
+            <column name="description" value="Ovos inteiros mexidos"/>
+            <column name="category" value="PROTEINS"/>
+            <column name="calories_per_100g" value="143"/>
+            <column name="carbs_per_100g" value="1.1"/>
+            <column name="protein_per_100g" value="13"/>
+            <column name="fat_per_100g" value="10"/>
+            <column name="serving_size" value="50"/>
+            <column name="serving_description" value="1 ovo médio"/>
+            <column name="source" value="USDA"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <insert tableName="foods">
+            <column name="name" value="Whey Protein"/>
+            <column name="description" value="Suplemento proteico em pó"/>
+            <column name="category" value="SUPPLEMENTS"/>
+            <column name="calories_per_100g" value="400"/>
+            <column name="carbs_per_100g" value="10"/>
+            <column name="protein_per_100g" value="80"/>
+            <column name="fat_per_100g" value="6"/>
+            <column name="serving_size" value="30"/>
+            <column name="serving_description" value="1 scoop"/>
+            <column name="source" value="Fabricante"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <!-- Lanche da manhã -->
+        <insert tableName="foods">
+            <column name="name" value="Pão Integral"/>
+            <column name="description" value="Pão de farinha integral"/>
+            <column name="category" value="CEREALS_GRAINS"/>
+            <column name="calories_per_100g" value="247"/>
+            <column name="carbs_per_100g" value="41"/>
+            <column name="protein_per_100g" value="13"/>
+            <column name="fat_per_100g" value="4"/>
+            <column name="fiber_per_100g" value="7"/>
+            <column name="serving_size" value="40"/>
+            <column name="serving_description" value="1 fatia"/>
+            <column name="source" value="TACO"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <insert tableName="foods">
+            <column name="name" value="Azeite de Oliva"/>
+            <column name="description" value="Azeite extra virgem"/>
+            <column name="category" value="FATS_OILS"/>
+            <column name="calories_per_100g" value="884"/>
+            <column name="carbs_per_100g" value="0"/>
+            <column name="protein_per_100g" value="0"/>
+            <column name="fat_per_100g" value="100"/>
+            <column name="serving_size" value="5"/>
+            <column name="serving_description" value="1 colher de chá"/>
+            <column name="source" value="USDA"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <!-- Almoço -->
+        <insert tableName="foods">
+            <column name="name" value="Peixe Branco"/>
+            <column name="description" value="Peixe branco cozido (ex.: pescada, tilápia)"/>
+            <column name="category" value="PROTEINS"/>
+            <column name="calories_per_100g" value="96"/>
+            <column name="carbs_per_100g" value="0"/>
+            <column name="protein_per_100g" value="20"/>
+            <column name="fat_per_100g" value="1.5"/>
+            <column name="serving_size" value="150"/>
+            <column name="serving_description" value="1 posta média"/>
+            <column name="source" value="USDA"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <insert tableName="foods">
+            <column name="name" value="Abobrinha"/>
+            <column name="description" value="Abobrinha cozida"/>
+            <column name="category" value="VEGETABLES"/>
+            <column name="calories_per_100g" value="17"/>
+            <column name="carbs_per_100g" value="3.1"/>
+            <column name="protein_per_100g" value="1.2"/>
+            <column name="fat_per_100g" value="0.3"/>
+            <column name="fiber_per_100g" value="1"/>
+            <column name="serving_size" value="100"/>
+            <column name="serving_description" value="1 porção média"/>
+            <column name="source" value="TACO"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <insert tableName="foods">
+            <column name="name" value="Couve"/>
+            <column name="description" value="Couve refogada ou cozida"/>
+            <column name="category" value="VEGETABLES"/>
+            <column name="calories_per_100g" value="49"/>
+            <column name="carbs_per_100g" value="9"/>
+            <column name="protein_per_100g" value="4.3"/>
+            <column name="fat_per_100g" value="0.9"/>
+            <column name="fiber_per_100g" value="3.6"/>
+            <column name="serving_size" value="100"/>
+            <column name="serving_description" value="1 porção média"/>
+            <column name="source" value="TACO"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <!-- Lanche da tarde -->
+        <insert tableName="foods">
+            <column name="name" value="Iogurte Grego 0%"/>
+            <column name="description" value="Iogurte grego natural sem gordura"/>
+            <column name="category" value="DAIRY"/>
+            <column name="calories_per_100g" value="59"/>
+            <column name="carbs_per_100g" value="3.6"/>
+            <column name="protein_per_100g" value="10"/>
+            <column name="fat_per_100g" value="0.4"/>
+            <column name="serving_size" value="200"/>
+            <column name="serving_description" value="1 pote"/>
+            <column name="source" value="USDA"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <insert tableName="foods">
+            <column name="name" value="Amêndoas"/>
+            <column name="description" value="Amêndoas cruas"/>
+            <column name="category" value="NUTS_SEEDS"/>
+            <column name="calories_per_100g" value="579"/>
+            <column name="carbs_per_100g" value="22"/>
+            <column name="protein_per_100g" value="21"/>
+            <column name="fat_per_100g" value="50"/>
+            <column name="fiber_per_100g" value="12"/>
+            <column name="serving_size" value="20"/>
+            <column name="serving_description" value="1 punhado pequeno"/>
+            <column name="source" value="USDA"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <!-- Jantar -->
+        <insert tableName="foods">
+            <column name="name" value="Batata-doce"/>
+            <column name="description" value="Batata-doce assada"/>
+            <column name="category" value="CEREALS_GRAINS"/>
+            <column name="calories_per_100g" value="86"/>
+            <column name="carbs_per_100g" value="20"/>
+            <column name="protein_per_100g" value="1.6"/>
+            <column name="fat_per_100g" value="0.1"/>
+            <column name="fiber_per_100g" value="3"/>
+            <column name="serving_size" value="80"/>
+            <column name="serving_description" value="1 pedaço pequeno assado"/>
+            <column name="source" value="TACO"/>
+            <column name="verified" value="true"/>
+        </insert>
+
+        <insert tableName="foods">
             <column name="name" value="Maçã"/>
             <column name="description" value="Maçã fresca, fonte de fibras e vitaminas"/>
             <column name="category" value="FRUITS"/>
@@ -347,7 +575,7 @@
         </insert>
 
         <insert tableName="foods">
-            <column name="name" value="Ovos"/>
+            <column name="name" value="Ovos inteiros cozido"/>
             <column name="description" value="Ovo de galinha inteiro, cozido"/>
             <column name="category" value="PROTEINS"/>
             <column name="calories_per_100g" value="155"/>
@@ -412,49 +640,11 @@
             <column name="verified" value="true"/>
         </insert>
 
-        <!-- Laticínios -->
-        <insert tableName="foods">
-            <column name="name" value="Iogurte Natural"/>
-            <column name="description" value="Iogurte natural integral"/>
-            <column name="category" value="DAIRY"/>
-            <column name="calories_per_100g" value="61"/>
-            <column name="carbs_per_100g" value="4.7"/>
-            <column name="protein_per_100g" value="3.5"/>
-            <column name="fat_per_100g" value="3.3"/>
-            <column name="fiber_per_100g" value="0"/>
-            <column name="sodium_per_100g" value="46"/>
-            <column name="serving_size" value="170"/>
-            <column name="serving_description" value="1 pote"/>
-            <column name="source" value="TACO"/>
-            <column name="verified" value="true"/>
-        </insert>
     </changeSet>
 
     <!-- Sample Supplements Data -->
     <changeSet id="020-insert-sample-supplements" author="nutrition-system" context="dev">
         <comment>Sample supplement data for development and testing</comment>
-
-        <!-- Proteínas -->
-        <insert tableName="supplements">
-            <column name="name" value="Whey Protein Concentrado"/>
-            <column name="description" value="Proteína concentrada do soro do leite"/>
-            <column name="brand" value="Optimum Nutrition"/>
-            <column name="category" value="PROTEIN"/>
-            <column name="form" value="POWDER"/>
-            <column name="serving_size" value="30"/>
-            <column name="serving_unit" value="GRAMS"/>
-            <column name="servings_per_container" value="74"/>
-            <column name="calories_per_serving" value="120"/>
-            <column name="carbs_per_serving" value="3"/>
-            <column name="protein_per_serving" value="24"/>
-            <column name="fat_per_serving" value="1"/>
-            <column name="main_ingredient" value="Whey Protein Concentrate"/>
-            <column name="ingredient_amount" value="24"/>
-            <column name="ingredient_unit" value="g"/>
-            <column name="recommended_dosage" value="1 scoop (30g) com 200ml de água"/>
-            <column name="usage_instructions" value="Consumir após o treino ou entre as refeições"/>
-            <column name="verified" value="true"/>
-        </insert>
 
         <!-- Vitaminas -->
         <insert tableName="supplements">

@@ -20,10 +20,14 @@ public class ProfileValidationService {
     private static final BigDecimal MAX_HEIGHT = BigDecimal.valueOf(250);
     private static final BigDecimal MIN_WEIGHT = BigDecimal.valueOf(30);
     private static final BigDecimal MAX_WEIGHT = BigDecimal.valueOf(300);
+    private static final BigDecimal MAX_WEIGHT_DIFFERENCE = BigDecimal.valueOf(50);
+    private static final int MAX_YEAR_TARGET = 2;
+    private static final int MIN_DAYS_TARGET = 30;
+    public static final BigDecimal MIN_HEALTHY_WEEKLY_WEIGHT_CHANGE = BigDecimal.valueOf(0.25);
+    public static final BigDecimal MAX_HEALTHY_WEEKLY_WEIGHT_CHANGE = BigDecimal.valueOf(1.0);
 
-    /**
-     * Valida dados básicos do perfil
-     */
+    //TODO deixar essas infos em base de dados.
+
     public ValidationResult validateProfileData(LocalDate birthDate, UserProfile.Gender gender,
                                                 BigDecimal height, BigDecimal currentWeight,
                                                 BigDecimal targetWeight, LocalDate targetDate) {
@@ -43,65 +47,57 @@ public class ProfileValidationService {
         // Validar altura
         if (height != null) {
             if (height.compareTo(MIN_HEIGHT) < 0 || height.compareTo(MAX_HEIGHT) > 0) {
-                errors.add(String.format("Altura deve estar entre %.0f e %.0f cm",
-                        MIN_HEIGHT, MAX_HEIGHT));
+                errors.add(String.format("Altura deve estar entre %.0f e %.0f cm", MIN_HEIGHT, MAX_HEIGHT));
             }
         }
 
         // Validar peso atual
         if (currentWeight != null) {
             if (currentWeight.compareTo(MIN_WEIGHT) < 0 || currentWeight.compareTo(MAX_WEIGHT) > 0) {
-                errors.add(String.format("Peso atual deve estar entre %.0f e %.0f kg",
-                        MIN_WEIGHT, MAX_WEIGHT));
+                errors.add(String.format("Peso atual deve estar entre %.0f e %.0f kg", MIN_WEIGHT, MAX_WEIGHT));
             }
         }
 
         // Validar peso alvo
         if (targetWeight != null) {
             if (targetWeight.compareTo(MIN_WEIGHT) < 0 || targetWeight.compareTo(MAX_WEIGHT) > 0) {
-                errors.add(String.format("Peso alvo deve estar entre %.0f e %.0f kg",
-                        MIN_WEIGHT, MAX_WEIGHT));
+                errors.add(String.format("Peso alvo deve estar entre %.0f e %.0f kg", MIN_WEIGHT, MAX_WEIGHT));
             }
 
             // Verificar se a diferença de peso é realista
             if (currentWeight != null) {
                 BigDecimal weightDifference = targetWeight.subtract(currentWeight).abs();
-                if (weightDifference.compareTo(BigDecimal.valueOf(50)) > 0) {
-                    warnings.add("Diferença entre peso atual e alvo é muito grande (>50kg). " +
-                            "Considere objetivos intermediários.");
+                if (weightDifference.compareTo(MAX_WEIGHT_DIFFERENCE) > 0) {
+                    warnings.add("Diferença entre peso atual e alvo é muito grande (>" + MAX_WEIGHT_DIFFERENCE + "kg). " + "Considere objetivos intermediários.");
                 }
             }
         }
 
         if (targetDate != null) {
             LocalDate today = LocalDate.now();
-
             if (!targetDate.isAfter(today)) {
                 errors.add("Data alvo deve ser no futuro");
             } else {
                 // Verificar se a data alvo é muito distante
                 long daysToTarget = today.until(targetDate).getDays();
-                if (daysToTarget > 365 * 2) { // Mais de 2 anos
-                    warnings.add("Data alvo muito distante (>2 anos). Considere objetivos intermediários.");
-                } else if (daysToTarget < 30) { // Menos de 1 mês
-                    warnings.add("Data alvo muito próxima (<30 dias). Pode ser difícil alcançar de forma saudável.");
+                if (daysToTarget > 365 * MAX_YEAR_TARGET) {
+                    warnings.add("Data alvo muito distante (>" + MAX_YEAR_TARGET + " anos). Considere objetivos intermediários.");
+                } else if (daysToTarget < MIN_DAYS_TARGET) {
+                    warnings.add("Data alvo muito próxima (<" + MIN_DAYS_TARGET + " dias). Pode ser difícil alcançar de forma saudável.");
                 }
 
                 // Validar taxa de perda/ganho baseada na data alvo
                 if (currentWeight != null && targetWeight != null) {
                     BigDecimal weightDifference = targetWeight.subtract(currentWeight);
                     double weeksToTarget = daysToTarget / 7.0;
-                    BigDecimal weeklyWeightChange = weightDifference.divide(
-                            BigDecimal.valueOf(weeksToTarget), 3, BigDecimal.ROUND_HALF_UP);
+                    BigDecimal weeklyWeightChange = weightDifference.divide(BigDecimal.valueOf(weeksToTarget), 3, BigDecimal.ROUND_HALF_UP);
 
                     // Taxa saudável: 0.25kg - 1kg por semana
                     BigDecimal absWeeklyChange = weeklyWeightChange.abs();
-                    if (absWeeklyChange.compareTo(BigDecimal.valueOf(1.5)) > 0) {
-                        warnings.add(String.format("Taxa de mudança de peso muito alta (%.2f kg/semana). " +
-                                "Recomendado máximo 1kg/semana.", absWeeklyChange));
-                    } else if (absWeeklyChange.compareTo(BigDecimal.valueOf(0.1)) < 0) {
-                        warnings.add("Taxa de mudança de peso muito baixa. " +
-                                "Considere uma data alvo mais próxima ou ajustar o objetivo.");
+                    if (absWeeklyChange.compareTo(MAX_HEALTHY_WEEKLY_WEIGHT_CHANGE) > 0) {
+                        warnings.add(String.format("Taxa de mudança de peso muito alta (%.2f kg/semana). Recomendado máximo 1kg/semana.", absWeeklyChange));
+                    } else if (absWeeklyChange.compareTo(MIN_HEALTHY_WEEKLY_WEIGHT_CHANGE) < 0) {
+                        warnings.add(String.format("Taxa de mudança de peso muito baixa (%.2f kg/semana). Recomendado mínimo 0.25kg/semana.", absWeeklyChange));
                     }
                 }
             }
@@ -137,9 +133,7 @@ public class ProfileValidationService {
         // Validar se o objetivo é saudável
         if (currentBodyMassIndex != null && targetBodyMassIndex != null) {
             // Se pessoa está no peso normal e quer perder muito peso
-            if (currentBodyMassIndex.compareTo(BigDecimal.valueOf(18.5)) >= 0 &&
-                    currentBodyMassIndex.compareTo(BigDecimal.valueOf(25)) < 0 &&
-                    targetBodyMassIndex.compareTo(BigDecimal.valueOf(18.5)) < 0) {
+            if (currentBodyMassIndex.compareTo(BigDecimal.valueOf(18.5)) >= 0 && currentBodyMassIndex.compareTo(BigDecimal.valueOf(25)) < 0 && targetBodyMassIndex.compareTo(BigDecimal.valueOf(18.5)) < 0) {
                 warnings.add("Objetivo pode levar a peso abaixo do normal. Consulte um nutricionista.");
             }
 
@@ -165,8 +159,9 @@ public class ProfileValidationService {
 
                 // Validar se o objetivo é realista para a data
                 UserProfile.Goal goal = profile.getGoal();
+                goal.setCalorieAdjustment(profile.getDailyCalorieTarget().subtract(profile.getTotalDailyEnergyExpenditure()));
                 if (goal != null) {
-                    int dailyCalorieAdjustment = Math.abs(goal.getCalorieAdjustment());
+                    int dailyCalorieAdjustment = Math.abs(goal.getCalorieAdjustment().intValue());
                     int weeklyCalorieDeficit = dailyCalorieAdjustment * 7;
 
                     // 1kg ≈ 7700 kcal
@@ -184,7 +179,7 @@ public class ProfileValidationService {
 
         // Validar taxa de perda/ganho semanal segura
         UserProfile.Goal goal = profile.getGoal();
-        int weeklyCalorieDeficit = Math.abs(goal.getCalorieAdjustment()) * 7;
+        int weeklyCalorieDeficit = Math.abs(goal.getCalorieAdjustment().intValue()) * 7;
 
         if (weeklyCalorieDeficit > 3500) { // Mais de 1 kg por semana
             warnings.add("Taxa de perda/ganho de peso muito alta. Recomendado máximo 0.5-1kg por semana.");
@@ -385,8 +380,5 @@ public class ProfileValidationService {
             return !warnings.isEmpty();
         }
 
-        public boolean hasErrors() {
-            return !errors.isEmpty();
-        }
     }
 }

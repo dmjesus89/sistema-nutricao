@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,6 +35,9 @@ public interface UserFoodPreferenceRepository extends JpaRepository<UserFoodPref
      * Find preferences by user with pagination
      */
     Page<UserFoodPreference> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
+
+    @Query("SELECT ufp FROM UserFoodPreference ufp WHERE ufp.user = :user AND ufp.preferenceType = 'FAVORITE'")
+    Collection<UserFoodPreference> findByUserAndPreferenceTypeFavorite(@Param("user") User user);
 
     /**
      * Find preferences by user and specific type
@@ -121,4 +125,5 @@ public interface UserFoodPreferenceRepository extends JpaRepository<UserFoodPref
     @Modifying
     @Query("UPDATE UserFoodPreference ufp SET ufp.preferenceType = :newType WHERE ufp.user = :user AND ufp.food = :food")
     int updatePreferenceType(@Param("user") User user, @Param("food") Food food, @Param("newType") UserFoodPreference.PreferenceType newType);
+
 }

@@ -1,6 +1,5 @@
 package com.nutrition.application.service;
 
-import com.nutrition.application.dto.auth.ApiResponse;
 import com.nutrition.application.dto.profile.CreateProfileRequest;
 import com.nutrition.application.dto.profile.ProfileRecommendationsResponse;
 import com.nutrition.application.dto.profile.ProfileResponse;
@@ -12,6 +11,8 @@ import com.nutrition.application.dto.profile.WeightUpdateRequest;
 import com.nutrition.domain.entity.auth.User;
 import com.nutrition.domain.entity.profile.UserProfile;
 import com.nutrition.domain.entity.profile.WeightHistory;
+import com.nutrition.infrastructure.exception.NotFoundException;
+import com.nutrition.infrastructure.exception.UnprocessableEntityException;
 import com.nutrition.infrastructure.repository.UserProfileRepository;
 import com.nutrition.infrastructure.repository.UserRepository;
 import com.nutrition.infrastructure.repository.WeightHistoryRepository;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -32,17 +34,16 @@ import java.util.stream.Collectors;
 public class ProfileService {
 
     private final UserProfileRepository profileRepository;
-    private final UserRepository userRepository;
     private final WeightHistoryRepository weightHistoryRepository;
     private final TotalDailyEnergyExpenditureCalculationService calculationService;
     private final ProfileValidationService validationService;
 
     @Transactional
-    public ApiResponse<ProfileResponse> createProfile(User currentUser, CreateProfileRequest request) {
+    public ProfileResponse createProfile(User currentUser, CreateProfileRequest request) {
         try {
 
             if (profileRepository.existsByUser(currentUser)) {
-                return ApiResponse.error("Usuário já possui perfil cadastrado");
+                throw new UnprocessableEntityException("Usuário já possui perfil cadastrado");
             }
 
             UserProfile.Gender gender = parseGender(request.getGender());
@@ -58,7 +59,7 @@ public class ProfileService {
             if (!validation.isValid()) {
                 String errorMessage = String.join("; ", validation.getErrors());
                 log.warn("Profile validation failed for user {}: {}", currentUser.getEmail(), errorMessage);
-                return ApiResponse.error("Dados inválidos: " + errorMessage);
+                throw new UnprocessableEntityException("Dados inválidos: " + errorMessage);
             }
 
             // Log warnings if any
@@ -89,11 +90,13 @@ public class ProfileService {
             if (!completenessValidation.isValid()) {
                 String errorMessage = String.join("; ", completenessValidation.getErrors());
                 log.error("Profile completeness validation failed: {}", errorMessage);
-                return ApiResponse.error("Perfil incompleto para cálculos: " + errorMessage);
+                throw new UnprocessableEntityException("Perfil incompleto para cálculos: " + errorMessage);
             }
 
             // Calcular métricas metabólicas in case not informed
             calculationService.updateMetabolicCalculations(profile);
+            profile.getGoal().setCalorieAdjustment(profile.getDailyCalorieTarget().subtract(profile.getTotalDailyEnergyExpenditure()));
+
 
             // Validar objetivo de peso após cálculos
             ProfileValidationService.ValidationResult goalValidation = validationService.validateWeightGoal(profile);
@@ -125,25 +128,22 @@ public class ProfileService {
             }
 
             log.info("Profile created successfully for user: {}", currentUser.getEmail());
-            return ApiResponse.success("Perfil criado com sucesso", response);
+            return response;
 
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid data in profile creation: {}", e.getMessage());
-            return ApiResponse.error(e.getMessage());
         } catch (Exception e) {
             log.error("Error creating profile: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw e;
         }
     }
 
     @Transactional
-    public ApiResponse<ProfileResponse> updateProfile(User currentUser, UpdateProfileRequest request) {
+    public ProfileResponse updateProfile(User currentUser, UpdateProfileRequest request) {
         try {
             UserProfile profile = profileRepository.findByUser(currentUser)
                     .orElse(null);
 
             if (profile == null) {
-                return ApiResponse.error("Perfil não encontrado. Crie um perfil primeiro.");
+                throw new UnprocessableEntityException("Perfil não encontrado. Crie um perfil primeiro.");
             }
 
             boolean needsRecalculation = false;
@@ -162,14 +162,13 @@ public class ProfileService {
             }
 
             if (request.getHeight() != null) {
-                // Validar nova altura
                 ProfileValidationService.ValidationResult heightValidation = validationService.validateProfileData(
                         null, null, request.getHeight(), null, null, null
                 );
 
                 if (!heightValidation.isValid()) {
                     String errorMessage = String.join("; ", heightValidation.getErrors());
-                    return ApiResponse.error("Altura inválida: " + errorMessage);
+                    throw new UnprocessableEntityException("Altura inválida: " + errorMessage);
                 }
 
                 profile.setHeight(request.getHeight());
@@ -177,14 +176,13 @@ public class ProfileService {
             }
 
             if (request.getTargetWeight() != null) {
-                // Validar novo peso alvo
                 ProfileValidationService.ValidationResult weightValidation = validationService.validateProfileData(
                         null, null, null, null, request.getTargetWeight(), null
                 );
 
                 if (!weightValidation.isValid()) {
                     String errorMessage = String.join("; ", weightValidation.getErrors());
-                    return ApiResponse.error("Peso alvo inválido: " + errorMessage);
+                    throw new UnprocessableEntityException("Peso alvo inválido: " + errorMessage);
                 }
 
                 profile.setTargetWeight(request.getTargetWeight());
@@ -193,14 +191,13 @@ public class ProfileService {
             }
 
             if (request.getTargetDate() != null) {
-                // Validate target date
                 ProfileValidationService.ValidationResult dateValidation = validationService.validateProfileData(
                         null, null, null, null, null, request.getTargetDate()
                 );
 
                 if (!dateValidation.isValid()) {
                     String errorMessage = String.join("; ", dateValidation.getErrors());
-                    return ApiResponse.error("Data alvo inválida: " + errorMessage);
+                    throw new UnprocessableEntityException("Data alvo inválida: " + errorMessage);
                 }
 
                 profile.setTargetDate(request.getTargetDate());
@@ -234,12 +231,11 @@ public class ProfileService {
                 needsRecalculation = true;
             }
 
-            // Recalcular métricas se necessário
             if (needsRecalculation) {
                 calculationService.updateMetabolicCalculations(profile);
+                profile.getGoal().setCalorieAdjustment(profile.getDailyCalorieTarget().subtract(profile.getTotalDailyEnergyExpenditure()));
             }
 
-            // Validar objetivo após atualizações
             if (needsGoalValidation) {
                 ProfileValidationService.ValidationResult goalValidation =
                         validationService.validateWeightGoal(profile);
@@ -255,45 +251,43 @@ public class ProfileService {
             ProfileResponse response = buildProfileResponse(profile);
 
             log.info("Profile updated successfully for user: {}", currentUser.getEmail());
-            return ApiResponse.success("Perfil atualizado com sucesso", response);
-
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid data in profile update: {}", e.getMessage());
-            return ApiResponse.error(e.getMessage());
+            return response;
         } catch (Exception e) {
             log.error("Error updating profile: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw e;
         }
     }
 
     @Transactional
-    public ApiResponse<WeightHistoryResponse> updateWeight(User currentUser, WeightUpdateRequest request) {
+    public WeightHistoryResponse updateWeight(User currentUser, WeightUpdateRequest request) {
         try {
+
+
             UserProfile profile = profileRepository.findByUser(currentUser)
                     .orElse(null);
 
             if (profile == null) {
-                return ApiResponse.error("Perfil não encontrado. Crie um perfil primeiro.");
+                throw new UnprocessableEntityException("Perfil não encontrado. Crie um perfil primeiro.");
             }
 
-            LocalDate recordDate = request.getRecordedDate() != null ?
-                    request.getRecordedDate() : LocalDate.now();
+            LocalDate recordDate = request.getRecordedDate() != null ? request.getRecordedDate() : LocalDate.now();
+
+            if (recordDate.isAfter(LocalDate.now())) {
+                throw new UnprocessableEntityException("Não é possivel inserir peso em data futura");
+            }
 
             // VALIDAÇÕES COM ProfileValidationService
             // Buscar peso anterior para validação
-            WeightHistory latestWeight = weightHistoryRepository
-                    .findLatestByUser(currentUser)
-                    .orElse(null);
+            WeightHistory latestWeight = weightHistoryRepository.findLatestByUser(currentUser).orElse(null);
 
             BigDecimal previousWeight = latestWeight != null ? latestWeight.getWeight() : null;
 
-            ProfileValidationService.ValidationResult weightValidation =
-                    validationService.validateWeightUpdate(request.getWeight(), previousWeight);
+            ProfileValidationService.ValidationResult weightValidation = validationService.validateWeightUpdate(request.getWeight(), previousWeight);
 
             if (!weightValidation.isValid()) {
                 String errorMessage = String.join("; ", weightValidation.getErrors());
                 log.warn("Weight update validation failed for user {}: {}", currentUser.getEmail(), errorMessage);
-                return ApiResponse.error("Peso inválido: " + errorMessage);
+                throw new UnprocessableEntityException("Peso inválido: " + errorMessage);
             }
 
             // Log warnings if any
@@ -303,19 +297,22 @@ public class ProfileService {
             }
 
             // Verificar se já existe registro para esta data
-            WeightHistory existingRecord = weightHistoryRepository
-                    .findByUserAndRecordedDate(currentUser, recordDate)
-                    .orElse(null);
+            WeightHistory existingRecord = weightHistoryRepository.findByUserAndRecordedDate(currentUser, recordDate).orElse(null);
 
             WeightHistory weightRecord;
 
             if (existingRecord != null) {
+
+                WeightHistory firstWeight = weightHistoryRepository.findFirstWeightByUser(currentUser).orElse(null);
+                if (recordDate.equals(firstWeight.getRecordedDate())) {
+                    throw new UnprocessableEntityException("Não é possivel inserir um peso no dia de inicio");
+                }
+
                 // Atualizar registro existente
                 existingRecord.setWeight(request.getWeight());
                 existingRecord.setNotes(request.getNotes());
                 weightRecord = weightHistoryRepository.save(existingRecord);
-                log.info("Weight record updated for user {} on date {}",
-                        currentUser.getEmail(), recordDate);
+                log.info("Weight record updated for user {} on date {}", currentUser.getEmail(), recordDate);
             } else {
                 // Criar novo registro
                 weightRecord = WeightHistory.builder()
@@ -351,58 +348,69 @@ public class ProfileService {
                 profileRepository.save(profile);
             }
 
-            WeightHistoryResponse response = buildWeightHistoryResponse(weightRecord, currentUser);
-
-            return ApiResponse.success("Peso atualizado com sucesso", response);
-
+            return buildWeightHistoryResponse(weightRecord, currentUser);
         } catch (Exception e) {
             log.error("Error updating weight: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw e;
         }
     }
 
-    public ApiResponse<ProfileResponse> getProfile(User currentUser) {
+    public ProfileResponse getProfile(User currentUser) {
         try {
             UserProfile profile = profileRepository.findByUser(currentUser)
                     .orElse(null);
 
             if (profile == null) {
-                return ApiResponse.error("Perfil não encontrado");
+                throw new UnprocessableEntityException("Perfil não encontrado");
             }
 
-            ProfileResponse response = buildProfileResponse(profile);
-            return ApiResponse.success(response);
-
+            return buildProfileResponse(profile);
         } catch (Exception e) {
             log.error("Error getting profile: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw e;
         }
     }
 
-    public ApiResponse<List<WeightHistoryResponse>> getWeightHistory(User currentUser) {
+    @Transactional
+    public void deleteProfile(User currentUser) {
+        try {
+            UserProfile profile = profileRepository.findByUser(currentUser)
+                    .orElse(null);
+
+            if (profile == null) {
+                throw new NotFoundException("Perfil não encontrado");
+            }
+
+            profileRepository.delete(profile);
+            weightHistoryRepository.deleteByUser(currentUser);
+        } catch (Exception e) {
+            log.error("Error deleting profile: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    public List<WeightHistoryResponse> getWeightHistory(User currentUser) {
         try {
             List<WeightHistory> history = weightHistoryRepository
                     .findByUserOrderByRecordedDateDesc(currentUser);
 
-            List<WeightHistoryResponse> responses = history.stream()
+            return history.stream()
                     .map(record -> buildWeightHistoryResponse(record, currentUser))
                     .collect(Collectors.toList());
 
-            return ApiResponse.success(responses);
-
         } catch (Exception e) {
             log.error("Error getting weight history: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw e;
         }
     }
 
-    public ApiResponse<WeightStatsResponse> getWeightStats(User currentUser) {
+    public WeightStatsResponse getWeightStats(User currentUser) {
         try {
             UserProfile profile = profileRepository.findByUser(currentUser)
                     .orElse(null);
 
             if (profile == null) {
-                return ApiResponse.error("Perfil não encontrado");
+                throw new UnprocessableEntityException("Perfil não encontrado");
             }
 
             WeightHistory firstWeight = weightHistoryRepository.findFirstWeightByUser(currentUser).orElse(null);
@@ -411,10 +419,17 @@ public class ProfileService {
             BigDecimal maxWeight = weightHistoryRepository.findMaxWeightByUser(currentUser).orElse(null);
             long totalMeasurements = weightHistoryRepository.countByUser(currentUser);
 
+            // Calcular mudanças de peso
+            BigDecimal averageWeeklyChange = calculateAverageWeeklyChange(currentUser);
+            BigDecimal monthlyChange = calculateMonthlyChange(currentUser);
+
             WeightStatsResponse.WeightStatsResponseBuilder responseBuilder = WeightStatsResponse.builder()
                     .currentWeight(profile.getCurrentWeight())
                     .targetWeight(profile.getTargetWeight())
                     .initialWeight(firstWeight != null ? firstWeight.getWeight() : null)
+                    .lastRecordDate(latestWeight != null ? latestWeight.getRecordedDate() : null)
+                    .averageWeeklyChange(averageWeeklyChange)
+                    .monthlyChange(monthlyChange)
                     .minWeight(minWeight)
                     .maxWeight(maxWeight)
                     .totalMeasurements(totalMeasurements);
@@ -437,22 +452,124 @@ public class ProfileService {
                 responseBuilder.daysTracking(Math.max(1, daysSinceFirst));
             }
 
-            WeightStatsResponse response = responseBuilder.build();
-            return ApiResponse.success(response);
-
+            return responseBuilder.build();
         } catch (Exception e) {
             log.error("Error getting weight stats: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw e;
         }
     }
 
-    public ApiResponse<TotalDailyEnergyExpenditureCalculationResponse> getTotalDailyEnergyExpenditureCalculation(User currentUser) {
+    /**
+     * Calcula a mudança média de peso semanal baseada no histórico
+     */
+    private BigDecimal calculateAverageWeeklyChange(User currentUser) {
+        List<WeightHistory> weightHistory = weightHistoryRepository
+                .findByUserOrderByRecordedDateAsc(currentUser); // Ordenar por data crescente
+
+        if (weightHistory.size() < 2) {
+            return BigDecimal.ZERO; // Precisa de pelo menos 2 registros
+        }
+
+        WeightHistory firstRecord = weightHistory.get(0);
+        WeightHistory lastRecord = weightHistory.get(weightHistory.size() - 1);
+
+        // Calcular diferença total de peso
+        BigDecimal totalWeightChange = lastRecord.getWeight().subtract(firstRecord.getWeight());
+
+        // Calcular diferença total de dias
+        long totalDays = firstRecord.getRecordedDate().until(lastRecord.getRecordedDate()).getDays();
+
+        if (totalDays <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        // Converter para semanas e calcular média
+        double totalWeeks = totalDays / 7.0;
+
+        if (totalWeeks < 0.5) { // Menos de meio semana
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal averageWeeklyChange = totalWeightChange.divide(
+                BigDecimal.valueOf(totalWeeks), 3, RoundingMode.HALF_UP);
+
+        return averageWeeklyChange;
+    }
+
+    /**
+     * Calcula a mudança de peso no último mês
+     */
+    private BigDecimal calculateMonthlyChange(User currentUser) {
+        LocalDate oneMonthAgo = LocalDate.now().minusMonths(1);
+        LocalDate twoWeeksRange = LocalDate.now().minusDays(14); // Give some flexibility
+
+        // Search for weights within a range around one month ago
+        List<WeightHistory> weightsAroundMonth = weightHistoryRepository
+                .findByUserAndDateRange(currentUser, oneMonthAgo.minusDays(7), oneMonthAgo.plusDays(7));
+
+        // Buscar peso mais recente
+        WeightHistory latestWeight = weightHistoryRepository
+                .findLatestByUser(currentUser)
+                .orElse(null);
+
+        if (weightsAroundMonth.isEmpty() || latestWeight == null) {
+            return BigDecimal.ZERO;
+        }
+
+        // Find the closest weight to one month ago
+        WeightHistory closestWeight = weightsAroundMonth.stream()
+                .min((w1, w2) -> {
+                    long diff1 = Math.abs(oneMonthAgo.toEpochDay() - w1.getRecordedDate().toEpochDay());
+                    long diff2 = Math.abs(oneMonthAgo.toEpochDay() - w2.getRecordedDate().toEpochDay());
+                    return Long.compare(diff1, diff2);
+                })
+                .orElse(weightsAroundMonth.get(0));
+
+        // Calcular diferença
+        BigDecimal monthlyChange = latestWeight.getWeight().subtract(closestWeight.getWeight());
+
+        return monthlyChange.setScale(3, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Calcula mudança de peso nas últimas N semanas
+     */
+    private BigDecimal calculateRecentWeeklyChange(User currentUser, int weeks) {
+        LocalDate nWeeksAgo = LocalDate.now().minusWeeks(weeks);
+
+        // Buscar registros das últimas N semanas
+        List<WeightHistory> recentHistory = weightHistoryRepository
+                .findByUserAndRecordedDateAfterOrderByRecordedDateAsc(currentUser, nWeeksAgo);
+
+        if (recentHistory.size() < 2) {
+            return BigDecimal.ZERO;
+        }
+
+        WeightHistory firstRecord = recentHistory.get(0);
+        WeightHistory lastRecord = recentHistory.get(recentHistory.size() - 1);
+
+        BigDecimal weightChange = lastRecord.getWeight().subtract(firstRecord.getWeight());
+        long daysDiff = firstRecord.getRecordedDate().until(lastRecord.getRecordedDate()).getDays();
+
+        if (daysDiff <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        // Normalizar para semanas
+        double actualWeeks = daysDiff / 7.0;
+        BigDecimal weeklyChange = weightChange.divide(
+                BigDecimal.valueOf(actualWeeks), 3, RoundingMode.HALF_UP);
+
+        return weeklyChange;
+    }
+
+    public TotalDailyEnergyExpenditureCalculationResponse getTotalDailyEnergyExpenditureCalculation(User currentUser) {
         try {
             UserProfile profile = profileRepository.findByUser(currentUser)
                     .orElse(null);
 
             if (profile == null) {
-                return ApiResponse.error("Perfil não encontrado");
+                throw new UnprocessableEntityException("Perfil não encontrado");
             }
 
             TotalDailyEnergyExpenditureCalculationResponse response = TotalDailyEnergyExpenditureCalculationResponse.builder()
@@ -461,28 +578,20 @@ public class ProfileService {
                     .dailyCalorieTarget(profile.getDailyCalorieTarget())
                     .calculationMethod("Mifflin-St Jeor")
                     .activityMultiplier(profile.getActivityLevel().getMultiplier())
-                    .calorieAdjustment(profile.getGoal().getCalorieAdjustment())
+                    .calorieAdjustment(profile.getDailyCalorieTarget().subtract(profile.getTotalDailyEnergyExpenditure()))
+                    .dailyWaterIntake(profile.getDailyWaterIntake())
                     .calculatedAt(profile.getUpdatedAt() != null ?
                             profile.getUpdatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) :
                             profile.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                     .build();
 
-            return ApiResponse.success(response);
+            return response;
 
         } catch (Exception e) {
             log.error("Error getting TotalDailyEnergyExpenditure calculation: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw e;
         }
     }
-
-    // Métodos auxiliares
-
-//    private User getCurrentUser() {
-//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//        String email = authentication.getName();
-//        return userRepository.findByEmail(email)
-//                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-//    }
 
     private UserProfile.Gender parseGender(String gender) {
         try {
@@ -528,6 +637,9 @@ public class ProfileService {
                 .dailyCalorieTarget(profile.getDailyCalorieTarget())
                 .bodyMassIndex(profile.getBodyMassIndex())
                 .bodyMassIndexCategory(profile.getBodyMassIndexCategory())
+                .daysToTarget(profile.getDaysToTarget() != null ? profile.getDaysToTarget().longValue() : null)
+                .recommendedWeeklyWeightChange(profile.getRecommendedWeeklyWeightChange())
+                .dailyWaterIntake(profile.getDailyWaterIntake())
                 .createdAt(profile.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                 .updatedAt(profile.getUpdatedAt() != null ?
                         profile.getUpdatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null)
@@ -562,13 +674,13 @@ public class ProfileService {
                 .build();
     }
 
-    public ApiResponse<ProfileRecommendationsResponse> getRecommendations(User currentUser) {
+    public ProfileRecommendationsResponse getRecommendations(User currentUser) {
         try {
             UserProfile profile = profileRepository.findByUser(currentUser)
                     .orElse(null);
 
             if (profile == null) {
-                return ApiResponse.error("Perfil não encontrado");
+                throw new UnprocessableEntityException("Perfil não encontrado");
             }
 
             // Gerar recomendações usando o ProfileValidationService
@@ -593,11 +705,11 @@ public class ProfileService {
                     .dailyWaterIntake(calculationService.calculateDailyWaterIntake(profile))
                     .build();
 
-            return ApiResponse.success(response);
+            return response;
 
         } catch (Exception e) {
             log.error("Error getting recommendations: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw e;
         }
     }
 }

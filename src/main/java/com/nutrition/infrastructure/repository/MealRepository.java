@@ -1,64 +1,59 @@
 package com.nutrition.infrastructure.repository;
 
-import com.nutrition.domain.entity.Meal;
-import com.nutrition.domain.entity.Meal.MealType;
-import com.nutrition.domain.entity.MealPlan;
+import com.nutrition.domain.entity.auth.User;
+import com.nutrition.domain.entity.meal.Meal;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface MealRepository extends JpaRepository<Meal, Long> {
 
-    // Find meals by meal plan
-    List<Meal> findByMealPlanOrderByOrderIndex(MealPlan mealPlan);
+    @Query("SELECT DISTINCT m FROM Meal m LEFT JOIN FETCH m.foods mf LEFT JOIN FETCH mf.food WHERE m.user = :user ORDER BY m.mealTime ASC")
+    List<Meal> findByUserOrderByMealTimeAsc(@Param("user") User user);
 
-    List<Meal> findByMealPlanIdOrderByOrderIndex(Long mealPlanId);
+    @Query("SELECT DISTINCT m FROM Meal m LEFT JOIN FETCH m.foods mf LEFT JOIN FETCH mf.food WHERE m.id = :id AND m.user = :user")
+    Optional<Meal> findByIdAndUser(@Param("id") Long id, @Param("user") User user);
 
-    // MISSING METHOD - Find all meals by meal plan
-    List<Meal> findByMealPlan(MealPlan mealPlan);
+    @Query("SELECT DISTINCT m FROM Meal m LEFT JOIN FETCH m.foods mf LEFT JOIN FETCH mf.food WHERE m.user = :user AND DATE(m.createdAt) = :date ORDER BY m.mealTime ASC")
+    List<Meal> findByUserAndDate(@Param("user") User user, @Param("date") LocalDate date);
 
-    // Find specific meal by plan and type
-    Optional<Meal> findByMealPlanAndMealType(MealPlan mealPlan, MealType mealType);
+    @Query("SELECT DISTINCT m FROM Meal m LEFT JOIN FETCH m.foods mf LEFT JOIN FETCH mf.food WHERE m.user = :user AND DATE(m.createdAt) BETWEEN :startDate AND :endDate ORDER BY m.createdAt ASC")
+    List<Meal> findByUserAndDateRange(@Param("user") User user,
+                                      @Param("startDate") LocalDate startDate,
+                                      @Param("endDate") LocalDate endDate);
 
-    Optional<Meal> findByMealPlanIdAndMealType(Long mealPlanId, MealType mealType);
+    @Query("SELECT COUNT(m) FROM Meal m WHERE m.user = :user")
+    Long countByUser(@Param("user") User user);
 
-    // Find completed/incomplete meals
-    List<Meal> findByMealPlanAndIsCompletedOrderByOrderIndex(MealPlan mealPlan, Boolean isCompleted);
+    @Query("SELECT DISTINCT m FROM Meal m LEFT JOIN FETCH m.foods mf LEFT JOIN FETCH mf.food WHERE m.user = :user AND m.name LIKE %:name% ORDER BY m.mealTime ASC")
+    List<Meal> findByUserAndNameContainingIgnoreCase(@Param("user") User user, @Param("name") String name);
 
-    List<Meal> findByMealPlanIdAndIsCompletedOrderByOrderIndex(Long mealPlanId, Boolean isCompleted);
+      // Find consumed meals for a specific date
+    @Query("SELECT DISTINCT m FROM Meal m LEFT JOIN FETCH m.foods mf LEFT JOIN FETCH mf.food " +
+            "WHERE m.user.id = :userId " +
+            "AND m.consumed = true " +
+            "AND DATE(m.consumedAt) = :date " +
+            "ORDER BY m.consumedAt ASC")
+    List<Meal> findConsumedMealsByUserAndDate(@Param("userId") Long userId,
+                                              @Param("date") LocalDate date);
 
-    // Find meals for user on specific date
-    @Query("SELECT m FROM Meal m JOIN m.mealPlan mp " +
-            "WHERE mp.user.id = :userId AND mp.date = :date " +
-            "ORDER BY m.orderIndex")
-    List<Meal> findByUserIdAndDate(@Param("userId") Long userId, @Param("date") LocalDate date);
+    // Find consumed meals between dates
+    @Query("SELECT DISTINCT m FROM Meal m LEFT JOIN FETCH m.foods mf LEFT JOIN FETCH mf.food " +
+            "WHERE m.user.id = :userId " +
+            "AND m.consumed = true " +
+            "AND DATE(m.consumedAt) BETWEEN :startDate AND :endDate " +
+            "ORDER BY m.consumedAt DESC")
+    List<Meal> findConsumedMealsByUserAndDateRange(@Param("userId") Long userId,
+                                                   @Param("startDate") LocalDate startDate,
+                                                   @Param("endDate") LocalDate endDate);
 
-    // Find upcoming meals for user
-    @Query("SELECT m FROM Meal m JOIN m.mealPlan mp " +
-            "WHERE mp.user.id = :userId AND mp.date = :date " +
-            "AND m.isCompleted = false AND m.scheduledTime IS NOT NULL " +
-            "ORDER BY m.scheduledTime")
-    List<Meal> findUpcomingMealsForDate(@Param("userId") Long userId, @Param("date") LocalDate date);
 
-    // Statistics
-    @Query("SELECT COUNT(m) FROM Meal m JOIN m.mealPlan mp " +
-            "WHERE mp.user.id = :userId AND m.isCompleted = true " +
-            "AND mp.date BETWEEN :startDate AND :endDate")
-    Long countCompletedMeals(@Param("userId") Long userId,
-                             @Param("startDate") LocalDate startDate,
-                             @Param("endDate") LocalDate endDate);
 
-    @Query("SELECT m.mealType, COUNT(m) FROM Meal m JOIN m.mealPlan mp " +
-            "WHERE mp.user.id = :userId AND m.isCompleted = true " +
-            "AND mp.date BETWEEN :startDate AND :endDate " +
-            "GROUP BY m.mealType")
-    List<Object[]> getMealTypeCompletionStats(@Param("userId") Long userId,
-                                              @Param("startDate") LocalDate startDate,
-                                              @Param("endDate") LocalDate endDate);
 }

@@ -17,6 +17,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -76,6 +77,9 @@ public class UserProfile {
 
     @Column(name = "daily_calories", precision = 7, scale = 2)
     private BigDecimal dailyCalorieTarget; // Calorias diárias baseadas no objetivo
+
+    @Column(name = "daily_water_intake", precision = 7, scale = 2)
+    private BigDecimal dailyWaterIntake;
 
     @Column(name = "created_at", nullable = false)
     @Builder.Default
@@ -168,25 +172,27 @@ public class UserProfile {
     }
 
     public enum Goal {
-        LOSE_WEIGHT("Perder peso", -500),
-        MAINTAIN_WEIGHT("Manter peso", 0),
-        GAIN_WEIGHT("Ganhar peso", 500);
+        LOSE_WEIGHT("Perder Gordura/Manter Massa Magra"),
+        MAINTAIN_WEIGHT("Manter peso"),
+        GAIN_WEIGHT("Ganhar peso");
 
         private final String displayName;
-        private final int calorieAdjustment; // calorias a adicionar/subtrair do TotalDailyEnergyExpenditure
+        @Setter
+        private BigDecimal calorieAdjustment; // calorias a adicionar/subtrair do TotalDailyEnergyExpenditure
 
-        Goal(String displayName, int calorieAdjustment) {
+        Goal(String displayName) {
             this.displayName = displayName;
-            this.calorieAdjustment = calorieAdjustment;
         }
 
         public String getDisplayName() {
             return displayName;
         }
 
-        public int getCalorieAdjustment() {
+        public BigDecimal getCalorieAdjustment() {
             return calorieAdjustment;
         }
+
+
     }
 
 

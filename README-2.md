@@ -65,7 +65,7 @@ Implementação completa do **Epic 2** do Sistema de Nutrição, focado na gest�
 | POST | `/api/v1/profile` | Criar perfil inicial |
 | PUT | `/api/v1/profile` | Atualizar perfil |
 | GET | `/api/v1/profile` | Obter perfil completo |
-| GET | `/api/v1/profile/tdee` | Cálculos TDEE detalhados |
+| GET | `/api/v1/profile/totalDailyEnergyExpenditure` | Cálculos TDEE detalhados |
 
 ### Gestão de Peso
 
@@ -146,7 +146,7 @@ curl -X POST http://localhost:8080/api/v1/profile \
     "goal": "LOSE_WEIGHT",
     "goal_display": "Perder peso",
     "bmr": 1765.00,
-    "tdee": 2735.75,
+    "totalDailyEnergyExpenditure": 2735.75,
     "daily_calories": 2236,
     "bmi": 24.69,
     "bmi_category": "Peso normal",
@@ -175,7 +175,7 @@ curl -X GET http://localhost:8080/api/v1/profile/weight/history \
 
 ### 4. Visualizar Cálculos TDEE
 ```bash
-curl -X GET http://localhost:8080/api/v1/profile/tdee \
+curl -X GET http://localhost:8080/api/v1/profile/totalDailyEnergyExpenditure \
   -H "Authorization: Bearer seu-token-jwt"
 ```
 

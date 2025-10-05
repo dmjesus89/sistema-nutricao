@@ -23,9 +23,6 @@ public interface EmailConfirmationTokenRepository extends JpaRepository<EmailCon
     @Modifying
     @Query("DELETE FROM EmailConfirmationToken t WHERE t.expiresAt < :now")
     void deleteExpiredTokens(@Param("now") LocalDateTime now);
-
-    @Modifying
-    @Query("DELETE FROM EmailConfirmationToken t WHERE t.user = :user AND t.confirmedAt IS NULL")
-    void deletePendingTokensByUser(@Param("user") User user);
+    
 }
 

@@ -49,6 +49,9 @@ public class FoodResponse {
     @JsonProperty("saturatedFatPer100g")
     private BigDecimal saturatedFatPer100g;
 
+    @JsonProperty("quantityEquivalence")
+    private String quantityEquivalence;
+
     @JsonProperty("servingSize")
     private BigDecimal servingSize;
 
@@ -83,7 +86,7 @@ public class FoodResponse {
     private Boolean isLowSodium;
 
     @JsonProperty("userPreference")
-    private String userPreference; // FAVORITE, RESTRICTION, etc.
+    private String userPreference; // FAVORITE, RESTRICTION, AVOID, DISLIKE, etc.
 
     @JsonProperty("createdAt")
     private String createdAt;

@@ -69,6 +69,9 @@ public class Food {
     @Column(name = "saturated_fat_per_100g", precision = 6, scale = 2)
     private BigDecimal saturatedFatPer100g; // em gramas
 
+    @Column(name = "quantity_equivalence")
+    private String quantityEquivalence;
+
     // Informações de porção
     @Column(name = "serving_size", precision = 6, scale = 2)
     private BigDecimal servingSize; // em gramas

@@ -1,7 +1,9 @@
 package com.nutrition.infrastructure.repository;
 
-import com.nutrition.domain.entity.food.Supplement;
 import com.nutrition.domain.entity.auth.User;
+import com.nutrition.domain.entity.food.Supplement;
+import com.nutrition.domain.entity.food.UserFoodPreference;
+import com.nutrition.domain.entity.food.UserSupplementPreference;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -180,6 +183,10 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
     Page<Supplement> findLowCalorieSupplements(@Param("maxCalories") java.math.BigDecimal maxCalories, Pageable pageable);
 
     // ========== USER PREFERENCE QUERIES ==========
+
+    @Query("SELECT s FROM Supplement s JOIN s.userPreferences up WHERE up.user = :user AND " +
+            "up.preferenceType IS NOT NULL AND s.active = true ORDER BY up.createdAt DESC")
+    List<Supplement> findUserWithPreferences(@Param("user") User user);
 
     /**
      * Find user's favorite supplements
@@ -435,4 +442,14 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
      */
     @Query("UPDATE Supplement s SET s.category = :category WHERE s.id IN :ids")
     int bulkUpdateCategory(@Param("ids") List<Long> ids, @Param("category") Supplement.SupplementCategory category);
+
+
+    @Query("SELECT ufp FROM UserSupplementPreference ufp WHERE ufp.user = :user AND " +
+            "ufp.preferenceType IN :preferenceTypes ORDER BY ufp.createdAt DESC")
+    List<UserSupplementPreference> findByUserAndPreferenceTypes(@Param("user") User user,
+                                                                @Param("preferenceTypes") List<UserSupplementPreference.PreferenceType> preferenceTypes);
+
+    @Query("SELECT ufp FROM UserSupplementPreference ufp WHERE ufp.user = :user AND ufp.preferenceType = 'FAVORITE'")
+    Collection<UserSupplementPreference> findByUserAndPreferenceTypeFavorite(@Param("user") User user);
+
 }

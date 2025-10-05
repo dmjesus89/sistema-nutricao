@@ -30,8 +30,12 @@ public class TotalDailyEnergyExpenditureCalculationResponse {
     private Double activityMultiplier;
 
     @JsonProperty("calorieAdjustment")
-    private Integer calorieAdjustment;
+    private BigDecimal calorieAdjustment;
 
     @JsonProperty("calculatedAt")
     private String calculatedAt;
+
+    @JsonProperty("dailyWaterIntake")
+    private BigDecimal dailyWaterIntake;
+
 }

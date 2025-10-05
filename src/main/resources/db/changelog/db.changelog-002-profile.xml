@@ -32,6 +32,9 @@
                 <constraints nullable="false"/>
             </column>
             <column name="updated_at" type="TIMESTAMP"/>
+            <column name="daily_water_intake" type="DECIMAL(6,2)" remarks="Daily water intake goal in milliliters">
+                <constraints nullable="true"/>
+            </column>
         </createTable>
 
         <addForeignKeyConstraint baseTableName="user_profiles"
@@ -115,7 +118,8 @@
         <sql>
             ALTER TABLE user_profiles
                 ADD CONSTRAINT chk_user_profiles_activity_level
-                    CHECK (activity_level IN ('SEDENTARY', 'LIGHTLY_ACTIVE', 'MODERATELY_ACTIVE', 'VERY_ACTIVE', 'EXTREMELY_ACTIVE'));
+                    CHECK (activity_level IN
+                           ('SEDENTARY', 'LIGHTLY_ACTIVE', 'MODERATELY_ACTIVE', 'VERY_ACTIVE', 'EXTREMELY_ACTIVE'));
         </sql>
 
         <sql>
@@ -156,19 +160,19 @@
 
         <!-- Sample user for testing (if admin user exists) -->
         <sql>
-            INSERT INTO user_profiles (user_id, birth_date, gender, height, current_weight, target_weight, activity_level, goal, basal_metabolic_rate, total_daily_energy_expenditure, daily_calories)
-            SELECT
-                u.id,
-                '1985-05-15'::DATE,
-                    'MALE',
-                180.00,
-                80.00,
-                75.00,
-                'MODERATELY_ACTIVE',
-                'LOSE_WEIGHT',
-                1800.00,
-                2790.00,
-                2290.00
+            INSERT INTO user_profiles (user_id, birth_date, gender, height, current_weight, target_weight,
+                                       activity_level, goal, basal_metabolic_rate, total_daily_energy_expenditure,
+                                       daily_calories)
+            SELECT u.id,
+                   '1985-05-15'::DATE, 'MALE',
+                   180.00,
+                   80.00,
+                   75.00,
+                   'MODERATELY_ACTIVE',
+                   'LOSE_WEIGHT',
+                   1800.00,
+                   2790.00,
+                   2290.00
             FROM users u
             WHERE u.email = 'admin@sistema-nutricao.com'
               AND NOT EXISTS (SELECT 1 FROM user_profiles up WHERE up.user_id = u.id);
@@ -177,11 +181,9 @@
         <!-- Sample weight history for the admin user -->
         <sql>
             INSERT INTO weight_history (user_id, weight, recorded_date, notes)
-            SELECT
-                u.id,
-                80.00,
-                CURRENT_DATE - INTERVAL '30 days',
-                'Peso inicial'
+            SELECT u.id,
+                   80.00,
+                   CURRENT_DATE - INTERVAL '30 days', 'Peso inicial'
             FROM users u
             WHERE u.email = 'admin@sistema-nutricao.com'
               AND NOT EXISTS (
@@ -193,11 +195,9 @@
 
         <sql>
             INSERT INTO weight_history (user_id, weight, recorded_date, notes)
-            SELECT
-                u.id,
-                79.5,
-                CURRENT_DATE - INTERVAL '15 days',
-                'Progresso quinzenal'
+            SELECT u.id,
+                   79.5,
+                   CURRENT_DATE - INTERVAL '15 days', 'Progresso quinzenal'
             FROM users u
             WHERE u.email = 'admin@sistema-nutricao.com'
               AND NOT EXISTS (
@@ -209,18 +209,16 @@
 
         <sql>
             INSERT INTO weight_history (user_id, weight, recorded_date, notes)
-            SELECT
-                u.id,
-                78.8,
-                CURRENT_DATE,
-                'Peso atual'
+            SELECT u.id,
+                   78.8,
+                   CURRENT_DATE,
+                   'Peso atual'
             FROM users u
             WHERE u.email = 'admin@sistema-nutricao.com'
-              AND NOT EXISTS (
-                SELECT 1 FROM weight_history wh
-                WHERE wh.user_id = u.id
-                  AND wh.recorded_date = CURRENT_DATE
-            );
+              AND NOT EXISTS (SELECT 1
+                              FROM weight_history wh
+                              WHERE wh.user_id = u.id
+                                AND wh.recorded_date = CURRENT_DATE);
         </sql>
     </changeSet>
 

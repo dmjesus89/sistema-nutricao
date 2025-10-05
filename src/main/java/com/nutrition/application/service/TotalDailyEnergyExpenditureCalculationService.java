@@ -104,22 +104,41 @@ public class TotalDailyEnergyExpenditureCalculationService {
         return dailyCalories.setScale(0, RoundingMode.HALF_UP);
     }
 
+    /**
+     * Calcula a necessidade de água diária (ml) baseada no peso
+     * Fórmula: 35ml por kg de peso corporal
+     */
+    public BigDecimal calculateDailyWaterIntake(UserProfile profile) {
+        if (profile.getCurrentWeight() == null) {
+            return BigDecimal.valueOf(2000); // padrão de 2L
+        }
+
+        BigDecimal dailyWaterIntake = profile.getCurrentWeight().multiply(BigDecimal.valueOf(35));
+
+        // Mínimo de 1.5L, máximo de 4L
+        if (dailyWaterIntake.compareTo(BigDecimal.valueOf(1500)) < 0) {
+            dailyWaterIntake = BigDecimal.valueOf(1500);
+        } else if (dailyWaterIntake.compareTo(BigDecimal.valueOf(4000)) > 0) {
+            dailyWaterIntake = BigDecimal.valueOf(4000);
+        }
+
+        log.info("Daily water intake calculated for user {}: {} ml", profile.getUser().getId(), dailyWaterIntake);
+        return dailyWaterIntake.setScale(0, RoundingMode.HALF_UP);
+    }
 
     /**
      * Atualiza todos os cálculos metabólicos do perfil
      */
     public void updateMetabolicCalculations(UserProfile profile) {
         try {
-
             profile.setBasalMetabolicRate(calculateBasalMetabolicRate(profile));
             profile.setTotalDailyEnergyExpenditure(calculateTotalDailyEnergyExpenditure(profile));
             profile.setDailyCalorieTarget(calculateDailyCalories(profile));
+            profile.setDailyWaterIntake(calculateDailyWaterIntake(profile));
 
-            profile.setBasalMetabolicRate(profile.getBasalMetabolicRate());
-            profile.setTotalDailyEnergyExpenditure(profile.getTotalDailyEnergyExpenditure());
-            profile.setDailyCalorieTarget(profile.getDailyCalorieTarget());
-
-            log.info("Metabolic calculations updated for user {}: BasalMetabolicRate={}, TotalDailyEnergyExpenditure={}, Daily Calories={}", profile.getUser().getId(), profile.getBasalMetabolicRate(), profile.getTotalDailyEnergyExpenditure(), profile.getDailyCalorieTarget());
+            log.info("Metabolic calculations updated for user {}: BasalMetabolicRate={}, TotalDailyEnergyExpenditure={}, Daily Calories={}, Water Intake={}",
+                    profile.getUser().getId(), profile.getBasalMetabolicRate(), profile.getTotalDailyEnergyExpenditure(),
+                    profile.getDailyCalorieTarget(), profile.getDailyWaterIntake());
         } catch (Exception e) {
             log.error("Error updating metabolic calculations for user {}: {}",
                     profile.getUser().getId(), e.getMessage());
@@ -136,7 +155,7 @@ public class TotalDailyEnergyExpenditureCalculationService {
         }
 
         BigDecimal weightDifference = profile.getTargetWeight().subtract(profile.getCurrentWeight()).abs();
-        int calorieAdjustment = Math.abs(profile.getGoal().getCalorieAdjustment());
+        int calorieAdjustment = Math.abs(profile.getGoal().getCalorieAdjustment().intValue());
 
         if (calorieAdjustment == 0) {
             return null; // Mantendo peso, não há tempo estimado
@@ -145,8 +164,7 @@ public class TotalDailyEnergyExpenditureCalculationService {
         // Assumindo que 7000 kcal = 1 kg (aproximadamente)
         // Peso a perder/ganhar em kg × 7000 kcal/kg ÷ déficit/superávit diário ÷ 7 dias
         BigDecimal totalCalories = weightDifference.multiply(BigDecimal.valueOf(7000));
-        BigDecimal weeksDecimal = totalCalories.divide(
-                BigDecimal.valueOf(calorieAdjustment * 7), 1, RoundingMode.HALF_UP);
+        BigDecimal weeksDecimal = totalCalories.divide(BigDecimal.valueOf(calorieAdjustment * 7), 1, RoundingMode.HALF_UP);
 
         return weeksDecimal.intValue();
     }
@@ -165,35 +183,5 @@ public class TotalDailyEnergyExpenditureCalculationService {
                 profile.getAge() != null && profile.getAge() > 0;
     }
 
-    /**
-     * Retorna o mínimo de calorias seguro por sexo
-     */
-    private BigDecimal getMinimumCalories(UserProfile.Gender gender) {
-        return switch (gender) {
-            case MALE -> BigDecimal.valueOf(1500);
-            case FEMALE -> BigDecimal.valueOf(1200);
-            case OTHER -> BigDecimal.valueOf(1350); // média
-        };
-    }
 
-    /**
-     * Calcula a necessidade de água diária (ml) baseada no peso
-     * Fórmula: 35ml por kg de peso corporal
-     */
-    public BigDecimal calculateDailyWaterIntake(UserProfile profile) {
-        if (profile.getCurrentWeight() == null) {
-            return BigDecimal.valueOf(2000); // padrão de 2L
-        }
-
-        BigDecimal waterIntake = profile.getCurrentWeight().multiply(BigDecimal.valueOf(35));
-
-        // Mínimo de 1.5L, máximo de 4L
-        if (waterIntake.compareTo(BigDecimal.valueOf(1500)) < 0) {
-            waterIntake = BigDecimal.valueOf(1500);
-        } else if (waterIntake.compareTo(BigDecimal.valueOf(4000)) > 0) {
-            waterIntake = BigDecimal.valueOf(4000);
-        }
-
-        return waterIntake.setScale(0, RoundingMode.HALF_UP);
-    }
 }

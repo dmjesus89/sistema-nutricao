@@ -4,16 +4,11 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
 
-    <!-- Epic 1 - Authentication & User Management -->
     <include file="db/changelog/db.changelog-001-auth.xml"/>
-
-    <!-- Epic 2 - User Profile & Body Data -->
     <include file="db/changelog/db.changelog-002-profile.xml"/>
-
-    <!-- Epic 3 - Foods & Supplements -->
     <include file="db/changelog/db.changelog-003-foods.xml"/>
-
     <include file="db/changelog/db.changelog-004-meals.xml"/>
-
+    <include file="db/changelog/db.changelog-005-waterintake.xml"/>
+    <include file="db/changelog/db.changelog-006-trackingcalorie.xml"/>
 
 </databaseChangeLog>

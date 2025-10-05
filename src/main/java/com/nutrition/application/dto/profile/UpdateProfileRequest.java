@@ -33,6 +33,13 @@ public class UpdateProfileRequest {
     @Digits(integer = 3, fraction = 2)
     private BigDecimal height;
 
+    @NotNull(message = "Peso atual é obrigatório")
+    @DecimalMin(value = "30.0", message = "Peso deve ser no mínimo 30 kg")
+    @DecimalMax(value = "300.0", message = "Peso deve ser no máximo 300 kg")
+    @Digits(integer = 3, fraction = 2)
+    @JsonProperty("currentWeight")
+    private BigDecimal currentWeight;
+
     @DecimalMin(value = "30.0", message = "Peso deve ser no mínimo 30 kg")
     @DecimalMax(value = "300.0", message = "Peso deve ser no máximo 300 kg")
     @Digits(integer = 3, fraction = 2)

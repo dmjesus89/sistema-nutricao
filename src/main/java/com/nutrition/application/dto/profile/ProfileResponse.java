@@ -78,4 +78,7 @@ public class ProfileResponse {
 
     @JsonProperty("recommendedWeeklyWeightChange")
     private BigDecimal recommendedWeeklyWeightChange;
+
+    @JsonProperty("dailyWaterIntake")
+    private BigDecimal dailyWaterIntake;
 }

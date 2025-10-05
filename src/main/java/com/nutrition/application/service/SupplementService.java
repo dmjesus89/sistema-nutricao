@@ -1,15 +1,15 @@
 package com.nutrition.application.service;
 
-import com.nutrition.application.dto.auth.ApiResponse;
-import com.nutrition.application.dto.food.SupplementResponse;
 import com.nutrition.application.dto.food.CreateSupplementRequest;
+import com.nutrition.application.dto.food.SupplementResponse;
 import com.nutrition.application.dto.food.UserPreferenceRequest;
-import com.nutrition.domain.entity.food.Supplement;
 import com.nutrition.domain.entity.auth.User;
+import com.nutrition.domain.entity.food.Supplement;
 import com.nutrition.domain.entity.food.UserSupplementPreference;
+import com.nutrition.infrastructure.exception.UnprocessableEntityException;
 import com.nutrition.infrastructure.repository.SupplementRepository;
-import com.nutrition.infrastructure.repository.UserSupplementPreferenceRepository;
 import com.nutrition.infrastructure.repository.UserRepository;
+import com.nutrition.infrastructure.repository.UserSupplementPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -37,7 +37,7 @@ public class SupplementService {
 
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
-    public ApiResponse<SupplementResponse> createSupplement(CreateSupplementRequest request) {
+    public SupplementResponse createSupplement(CreateSupplementRequest request) {
         try {
             User currentUser = getCurrentUser();
 
@@ -76,23 +76,20 @@ public class SupplementService {
             SupplementResponse response = buildSupplementResponse(supplement, null);
 
             log.info("Supplement created successfully: {} by user: {}", supplement.getName(), currentUser.getEmail());
-            return ApiResponse.success("Suplemento criado com sucesso", response);
+            return response;
 
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid data in supplement creation: {}", e.getMessage());
-            return ApiResponse.error(e.getMessage());
         } catch (Exception e) {
             log.error("Error creating supplement: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
     /**
      * Enhanced search method with proper parameter mapping
      */
-    public ApiResponse<Page<SupplementResponse>> searchSupplements(String searchTerm, String category,
-                                                                   String form, String brand, Boolean verified,
-                                                                   int page, int size) {
+    public Page<SupplementResponse> searchSupplements(String searchTerm, String category,
+                                                      String form, String brand, Boolean verified,
+                                                      int page, int size) {
         try {
             User currentUser = getCurrentUserOrNull();
 
@@ -123,25 +120,22 @@ public class SupplementService {
             Page<SupplementResponse> responses = supplements.map(supplement -> buildSupplementResponse(supplement, currentUser));
 
             log.info("Supplement search completed: {} results", supplements.getTotalElements());
-            return ApiResponse.success(responses);
+            return responses;
 
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid search parameters: {}", e.getMessage());
-            return ApiResponse.error(e.getMessage());
         } catch (Exception e) {
             log.error("Error searching supplements: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
     /**
      * Enhanced search with all filter parameters
      */
-    public ApiResponse<Page<SupplementResponse>> searchSupplementsAdvanced(String name, String category, String form,
-                                                                           String brand, String ingredient,
-                                                                           String servingUnit, Boolean verified,
-                                                                           Boolean hasNutritionalValue,
-                                                                           int page, int size) {
+    public Page<SupplementResponse> searchSupplementsAdvanced(String name, String category, String form,
+                                                              String brand, String ingredient,
+                                                              String servingUnit, Boolean verified,
+                                                              Boolean hasNutritionalValue,
+                                                              int page, int size) {
         try {
             User currentUser = getCurrentUserOrNull();
 
@@ -162,18 +156,15 @@ public class SupplementService {
             Page<SupplementResponse> responses = supplements.map(supplement -> buildSupplementResponse(supplement, currentUser));
 
             log.info("Advanced supplement search completed: {} results", supplements.getTotalElements());
-            return ApiResponse.success(responses);
+            return responses;
 
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid advanced search parameters: {}", e.getMessage());
-            return ApiResponse.error(e.getMessage());
         } catch (Exception e) {
             log.error("Error in advanced supplement search: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
-    public ApiResponse<SupplementResponse> getSupplementById(Long supplementId) {
+    public SupplementResponse getSupplementById(Long supplementId) {
         try {
             User currentUser = getCurrentUserOrNull();
 
@@ -181,19 +172,18 @@ public class SupplementService {
                     .orElse(null);
 
             if (supplement == null) {
-                return ApiResponse.error("Suplemento não encontrado");
+                throw new UnprocessableEntityException("Suplemento não encontrado");
             }
 
-            SupplementResponse response = buildSupplementResponse(supplement, currentUser);
-            return ApiResponse.success(response);
+            return buildSupplementResponse(supplement, currentUser);
 
         } catch (Exception e) {
             log.error("Error getting supplement by ID: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
-    public ApiResponse<Page<SupplementResponse>> getSupplementsByCategory(String categoryName, int page, int size) {
+    public Page<SupplementResponse> getSupplementsByCategory(String categoryName, int page, int size) {
         try {
             User currentUser = getCurrentUserOrNull();
             Supplement.SupplementCategory category = parseSupplementCategory(categoryName);
@@ -201,19 +191,14 @@ public class SupplementService {
             Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
             Page<Supplement> supplements = supplementRepository.findByCategoryAndActiveTrueOrderByNameAsc(category, pageable);
 
-            Page<SupplementResponse> responses = supplements.map(supplement -> buildSupplementResponse(supplement, currentUser));
-
-            return ApiResponse.success(responses);
-
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.error("Categoria inválida: " + categoryName);
+            return supplements.map(supplement -> buildSupplementResponse(supplement, currentUser));
         } catch (Exception e) {
             log.error("Error getting supplements by category: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
-    public ApiResponse<Page<SupplementResponse>> getSupplementsByForm(String formName, int page, int size) {
+    public Page<SupplementResponse> getSupplementsByForm(String formName, int page, int size) {
         try {
             User currentUser = getCurrentUserOrNull();
             Supplement.SupplementForm form = parseSupplementForm(formName);
@@ -221,20 +206,15 @@ public class SupplementService {
             Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
             Page<Supplement> supplements = supplementRepository.findByFormAndActiveTrueOrderByNameAsc(form, pageable);
 
-            Page<SupplementResponse> responses = supplements.map(supplement -> buildSupplementResponse(supplement, currentUser));
-
-            return ApiResponse.success(responses);
-
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.error("Forma inválida: " + formName);
+            return supplements.map(supplement -> buildSupplementResponse(supplement, currentUser));
         } catch (Exception e) {
             log.error("Error getting supplements by form: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
     @Transactional
-    public ApiResponse<String> setSupplementPreference(Long supplementId, UserPreferenceRequest request) {
+    public void setSupplementPreference(Long supplementId, UserPreferenceRequest request) {
         try {
             User currentUser = getCurrentUser();
 
@@ -242,7 +222,7 @@ public class SupplementService {
                     .orElse(null);
 
             if (supplement == null) {
-                return ApiResponse.error("Suplemento não encontrado");
+                throw new UnprocessableEntityException("Suplemento não encontrado");
             }
 
             UserSupplementPreference.PreferenceType preferenceType = parseSupplementPreferenceType(request.getPreferenceType());
@@ -274,18 +254,16 @@ public class SupplementService {
                         preferenceType, supplement.getName(), currentUser.getEmail());
             }
 
-            return ApiResponse.success("Preferência salva com sucesso");
-
         } catch (IllegalArgumentException e) {
-            return ApiResponse.error(e.getMessage());
+            throw new UnprocessableEntityException(e.getMessage());
         } catch (Exception e) {
             log.error("Error setting supplement preference: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
     @Transactional
-    public ApiResponse<String> removeSupplementPreference(Long supplementId) {
+    public void removeSupplementPreference(Long supplementId) {
         try {
             User currentUser = getCurrentUser();
 
@@ -293,7 +271,7 @@ public class SupplementService {
                     .orElse(null);
 
             if (supplement == null) {
-                return ApiResponse.error("Suplemento não encontrado");
+                throw new UnprocessableEntityException("Suplemento não encontrado");
             }
 
             preferenceRepository.deleteByUserAndSupplement(currentUser, supplement);
@@ -301,114 +279,97 @@ public class SupplementService {
             log.info("Supplement preference removed for supplement {} by user {}",
                     supplement.getName(), currentUser.getEmail());
 
-            return ApiResponse.success("Preferência removida com sucesso");
-
         } catch (Exception e) {
             log.error("Error removing supplement preference: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
-    public ApiResponse<List<SupplementResponse>> getUserFavorites() {
+    public List<SupplementResponse> getUserFavorites() {
         try {
             User currentUser = getCurrentUser();
 
             List<Supplement> favorites = supplementRepository.findUserFavorites(currentUser);
-            List<SupplementResponse> responses = favorites.stream()
+            return favorites.stream()
                     .map(supplement -> buildSupplementResponse(supplement, currentUser))
                     .collect(Collectors.toList());
-
-            return ApiResponse.success(responses);
-
         } catch (Exception e) {
             log.error("Error getting user favorites: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
-    public ApiResponse<List<SupplementResponse>> getCurrentSupplements() {
+    public List<SupplementResponse> getCurrentSupplements() {
         try {
             User currentUser = getCurrentUser();
 
             List<Supplement> currentSupplements = supplementRepository.findUserCurrentSupplements(currentUser);
-            List<SupplementResponse> responses = currentSupplements.stream()
+            return currentSupplements.stream()
                     .map(supplement -> buildSupplementResponse(supplement, currentUser))
                     .collect(Collectors.toList());
-
-            return ApiResponse.success(responses);
-
         } catch (Exception e) {
             log.error("Error getting current supplements: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
-    public ApiResponse<List<SupplementResponse>> getUserWishlist() {
+    public List<SupplementResponse> getUserWishlist() {
         try {
             User currentUser = getCurrentUser();
 
             List<Supplement> wishlist = supplementRepository.findUserWishlistSupplements(currentUser);
-            List<SupplementResponse> responses = wishlist.stream()
+            return wishlist.stream()
                     .map(supplement -> buildSupplementResponse(supplement, currentUser))
                     .collect(Collectors.toList());
-
-            return ApiResponse.success(responses);
-
         } catch (Exception e) {
             log.error("Error getting user wishlist: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
-    public ApiResponse<Page<SupplementResponse>> getRecommendedSupplements(int page, int size) {
+    public Page<SupplementResponse> getRecommendedSupplements(int page, int size) {
         try {
             User currentUser = getCurrentUser();
 
             Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
             Page<Supplement> recommendations = supplementRepository.findRecommendedSupplementsForUser(currentUser, pageable);
 
-            Page<SupplementResponse> responses = recommendations.map(supplement -> buildSupplementResponse(supplement, currentUser));
-
-            return ApiResponse.success(responses);
-
+            return recommendations.map(supplement -> buildSupplementResponse(supplement, currentUser));
         } catch (Exception e) {
             log.error("Error getting recommended supplements: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<String> verifySupplement(Long supplementId) {
+    public void verifySupplement(Long supplementId) {
         try {
             Supplement supplement = supplementRepository.findByIdAndActiveTrue(supplementId)
                     .orElse(null);
 
             if (supplement == null) {
-                return ApiResponse.error("Suplemento não encontrado");
+                throw new UnprocessableEntityException("Suplemento não encontrado");
             }
 
             supplement.setVerified(true);
             supplementRepository.save(supplement);
 
             log.info("Supplement verified: {} by admin: {}", supplement.getName(), getCurrentUser().getEmail());
-
-            return ApiResponse.success("Suplemento verificado com sucesso");
-
         } catch (Exception e) {
             log.error("Error verifying supplement: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
-    public ApiResponse<String> deleteSupplement(Long supplementId) {
+    public void deleteSupplement(Long supplementId) {
         try {
             Supplement supplement = supplementRepository.findByIdAndActiveTrue(supplementId)
                     .orElse(null);
 
             if (supplement == null) {
-                return ApiResponse.error("Suplemento não encontrado");
+                throw new UnprocessableEntityException("Suplemento não encontrado");
             }
 
             // Soft delete
@@ -416,12 +377,9 @@ public class SupplementService {
             supplementRepository.save(supplement);
 
             log.info("Supplement deleted (soft): {} by admin: {}", supplement.getName(), getCurrentUser().getEmail());
-
-            return ApiResponse.success("Suplemento removido com sucesso");
-
         } catch (Exception e) {
             log.error("Error deleting supplement: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
@@ -551,5 +509,20 @@ public class SupplementService {
                 .updatedAt(supplement.getUpdatedAt() != null ?
                         supplement.getUpdatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null)
                 .build();
+    }
+
+
+    public List<SupplementResponse> getUserPreferences() {
+        try {
+            User currentUser = getCurrentUser();
+
+            List<Supplement> preferences = supplementRepository.findUserWithPreferences(currentUser);
+            return preferences.stream()
+                    .map(preference -> buildSupplementResponse(preference, currentUser))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting user preferences: {}", e.getMessage());
+            throw new UnprocessableEntityException("Erro interno do servidor");
+        }
     }
 }

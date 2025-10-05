@@ -8,10 +8,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 @Repository
 public interface UserDietaryRestrictionRepository extends JpaRepository<UserDietaryRestriction, Long> {
+
+    Collection<Object> findByUser(User user);
 
     /**
      * Find active dietary restrictions for user
@@ -106,4 +109,6 @@ public interface UserDietaryRestrictionRepository extends JpaRepository<UserDiet
     int updateRestrictionSeverity(@Param("user") User user,
                                   @Param("restrictionType") UserDietaryRestriction.DietaryRestrictionType restrictionType,
                                   @Param("newSeverity") UserDietaryRestriction.Severity newSeverity);
+
+
 }

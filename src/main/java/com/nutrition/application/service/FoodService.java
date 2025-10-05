@@ -1,14 +1,14 @@
 package com.nutrition.application.service;
 
-import com.nutrition.application.dto.auth.ApiResponse;
 import com.nutrition.application.dto.food.CreateFoodRequest;
 import com.nutrition.application.dto.food.FoodResponse;
 import com.nutrition.application.dto.food.FoodSearchRequest;
 import com.nutrition.application.dto.food.UpdateFoodRequest;
 import com.nutrition.application.dto.food.UserPreferenceRequest;
-import com.nutrition.domain.entity.food.Food;
 import com.nutrition.domain.entity.auth.User;
+import com.nutrition.domain.entity.food.Food;
 import com.nutrition.domain.entity.food.UserFoodPreference;
+import com.nutrition.infrastructure.exception.UnprocessableEntityException;
 import com.nutrition.infrastructure.repository.FoodRepository;
 import com.nutrition.infrastructure.repository.UserFoodPreferenceRepository;
 import com.nutrition.infrastructure.repository.UserRepository;
@@ -39,14 +39,14 @@ public class FoodService {
 
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
-    public ApiResponse<FoodResponse> createFood(CreateFoodRequest request) {
+    public FoodResponse createFood(CreateFoodRequest request) {
         try {
             User currentUser = getCurrentUser();
 
             // Verificar se já existe alimento com mesmo código de barras
             if (request.getBarcode() != null && !request.getBarcode().trim().isEmpty()) {
                 if (foodRepository.findByBarcodeAndActiveTrue(request.getBarcode()).isPresent()) {
-                    return ApiResponse.error("Já existe um alimento com este código de barras");
+                    throw new UnprocessableEntityException("Já existe um alimento com este código de barras");
                 }
             }
 
@@ -80,26 +80,26 @@ public class FoodService {
             FoodResponse response = buildFoodResponse(food, null);
 
             log.info("Food created successfully: {} by user: {}", food.getName(), currentUser.getEmail());
-            return ApiResponse.success("Alimento criado com sucesso", response);
+            return response;
 
         } catch (IllegalArgumentException e) {
             log.warn("Invalid data in food creation: {}", e.getMessage());
-            return ApiResponse.error(e.getMessage());
+            throw new UnprocessableEntityException(e.getMessage());
         } catch (Exception e) {
             log.error("Error creating food: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
-    public ApiResponse<FoodResponse> updateFood(Long foodId, UpdateFoodRequest request) {
+    public FoodResponse updateFood(Long foodId, UpdateFoodRequest request) {
         try {
             Food food = foodRepository.findByIdAndActiveTrue(foodId)
                     .orElse(null);
 
             if (food == null) {
-                return ApiResponse.error("Alimento não encontrado");
+                throw new UnprocessableEntityException("Alimento não encontrado");
             }
 
             // Atualizar campos se fornecidos
@@ -149,18 +149,18 @@ public class FoodService {
             FoodResponse response = buildFoodResponse(food, null);
 
             log.info("Food updated successfully: {} by user: {}", food.getName(), getCurrentUser().getEmail());
-            return ApiResponse.success("Alimento atualizado com sucesso", response);
+            return response;
 
         } catch (IllegalArgumentException e) {
             log.warn("Invalid data in food update: {}", e.getMessage());
-            return ApiResponse.error(e.getMessage());
+            throw new UnprocessableEntityException(e.getMessage());
         } catch (Exception e) {
             log.error("Error updating food: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
-    public ApiResponse<Page<FoodResponse>> searchFoods(FoodSearchRequest searchRequest, int page, int size) {
+    public Page<FoodResponse> searchFoods(FoodSearchRequest searchRequest, int page, int size) {
         try {
             User currentUser = getCurrentUserOrNull();
 
@@ -172,7 +172,7 @@ public class FoodService {
                 foods = foodRepository.findByAdvancedFilters(
                         searchRequest.getName(),
                         searchRequest.getCategory() != null ? parseFoodCategory(searchRequest.getCategory()) : null,
-                        searchRequest.getBrand(),
+                     //   searchRequest.getBrand(),
                         searchRequest.getMinCalories(),
                         searchRequest.getMaxCalories(),
                         searchRequest.getMinProtein(),
@@ -192,18 +192,18 @@ public class FoodService {
             Page<FoodResponse> responses = foods.map(food -> buildFoodResponse(food, currentUser));
 
             log.info("Food search completed: {} results", foods.getTotalElements());
-            return ApiResponse.success(responses);
+            return responses;
 
         } catch (IllegalArgumentException e) {
             log.warn("Invalid search parameters: {}", e.getMessage());
-            return ApiResponse.error(e.getMessage());
+            throw new UnprocessableEntityException(e.getMessage());
         } catch (Exception e) {
             log.error("Error searching foods: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
-    public ApiResponse<FoodResponse> getFoodById(Long foodId) {
+    public FoodResponse getFoodById(Long foodId) {
         try {
             User currentUser = getCurrentUserOrNull();
 
@@ -211,19 +211,17 @@ public class FoodService {
                     .orElse(null);
 
             if (food == null) {
-                return ApiResponse.error("Alimento não encontrado");
+                throw new UnprocessableEntityException("Alimento não encontrado");
             }
 
-            FoodResponse response = buildFoodResponse(food, currentUser);
-            return ApiResponse.success(response);
-
+            return buildFoodResponse(food, currentUser);
         } catch (Exception e) {
             log.error("Error getting food by ID: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
-    public ApiResponse<Page<FoodResponse>> getFoodsByCategory(String categoryName, int page, int size) {
+    public Page<FoodResponse> getFoodsByCategory(String categoryName, int page, int size) {
         try {
             User currentUser = getCurrentUserOrNull();
             Food.FoodCategory category = parseFoodCategory(categoryName);
@@ -231,20 +229,17 @@ public class FoodService {
             Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
             Page<Food> foods = foodRepository.findByCategoryAndActiveTrueOrderByNameAsc(category, pageable);
 
-            Page<FoodResponse> responses = foods.map(food -> buildFoodResponse(food, currentUser));
-
-            return ApiResponse.success(responses);
-
+            return foods.map(food -> buildFoodResponse(food, currentUser));
         } catch (IllegalArgumentException e) {
-            return ApiResponse.error("Categoria inválida: " + categoryName);
+            throw new UnprocessableEntityException("Categoria inválida: " + categoryName);
         } catch (Exception e) {
             log.error("Error getting foods by category: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
     @Transactional
-    public ApiResponse<String> setFoodPreference(Long foodId, UserPreferenceRequest request) {
+    public void setFoodPreference(Long foodId, UserPreferenceRequest request) {
         try {
             User currentUser = getCurrentUser();
 
@@ -252,7 +247,7 @@ public class FoodService {
                     .orElse(null);
 
             if (food == null) {
-                return ApiResponse.error("Alimento não encontrado");
+                throw new UnprocessableEntityException("Alimento não encontrado");
             }
 
             UserFoodPreference.PreferenceType preferenceType = parsePreferenceType(request.getPreferenceType());
@@ -283,19 +278,14 @@ public class FoodService {
                 log.info("Food preference created: {} for food {} by user {}",
                         preferenceType, food.getName(), currentUser.getEmail());
             }
-
-            return ApiResponse.success("Preferência salva com sucesso");
-
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.error(e.getMessage());
         } catch (Exception e) {
             log.error("Error setting food preference: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
     @Transactional
-    public ApiResponse<String> removeFoodPreference(Long foodId) {
+    public void removeFoodPreference(Long foodId) {
         try {
             User currentUser = getCurrentUser();
 
@@ -303,88 +293,90 @@ public class FoodService {
                     .orElse(null);
 
             if (food == null) {
-                return ApiResponse.error("Alimento não encontrado");
+                throw new UnprocessableEntityException("Alimento não encontrado");
             }
 
             preferenceRepository.deleteByUserAndFood(currentUser, food);
 
             log.info("Food preference removed for food {} by user {}",
                     food.getName(), currentUser.getEmail());
-
-            return ApiResponse.success("Preferência removida com sucesso");
-
         } catch (Exception e) {
             log.error("Error removing food preference: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
-    public ApiResponse<List<FoodResponse>> getUserFavorites() {
+    public List<FoodResponse> getUserFavorites() {
         try {
             User currentUser = getCurrentUser();
 
             List<Food> favorites = foodRepository.findUserFavorites(currentUser);
-            List<FoodResponse> responses = favorites.stream()
+            return favorites.stream()
                     .map(food -> buildFoodResponse(food, currentUser))
                     .collect(Collectors.toList());
-
-            return ApiResponse.success(responses);
-
         } catch (Exception e) {
             log.error("Error getting user favorites: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
-    public ApiResponse<Page<FoodResponse>> getRecommendedFoods(int page, int size) {
+    public List<FoodResponse> getUserPreferences() {
+        try {
+            User currentUser = getCurrentUser();
+
+            List<Food> favorites = foodRepository.findUserWithPreferences(currentUser);
+            return favorites.stream()
+                    .map(food -> buildFoodResponse(food, currentUser))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting user preferences: {}", e.getMessage());
+            throw new UnprocessableEntityException("Erro interno do servidor");
+        }
+    }
+
+    public Page<FoodResponse> getRecommendedFoods(int page, int size) {
         try {
             User currentUser = getCurrentUser();
 
             Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
             Page<Food> recommendations = foodRepository.findSuitableFoodsForUser(currentUser, pageable);
 
-            Page<FoodResponse> responses = recommendations.map(food -> buildFoodResponse(food, currentUser));
-
-            return ApiResponse.success(responses);
-
+            return recommendations.map(food -> buildFoodResponse(food, currentUser));
         } catch (Exception e) {
             log.error("Error getting recommended foods: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<String> verifyFood(Long foodId) {
+    public void verifyFood(Long foodId) {
         try {
             Food food = foodRepository.findByIdAndActiveTrue(foodId)
                     .orElse(null);
 
             if (food == null) {
-                return ApiResponse.error("Alimento não encontrado");
+                throw new UnprocessableEntityException("Alimento não encontrado");
             }
 
             food.setVerified(true);
             foodRepository.save(food);
 
             log.info("Food verified: {} by admin: {}", food.getName(), getCurrentUser().getEmail());
-
-            return ApiResponse.success("Alimento verificado com sucesso");
-
         } catch (Exception e) {
             log.error("Error verifying food: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
-    public ApiResponse<String> deleteFood(Long foodId) {
+    public void deleteFood(Long foodId) {
         try {
             Food food = foodRepository.findByIdAndActiveTrue(foodId)
                     .orElse(null);
 
             if (food == null) {
-                return ApiResponse.error("Alimento não encontrado");
+                throw new UnprocessableEntityException("Alimento não encontrado");
             }
 
             // Soft delete
@@ -392,12 +384,9 @@ public class FoodService {
             foodRepository.save(food);
 
             log.info("Food deleted (soft): {} by admin: {}", food.getName(), getCurrentUser().getEmail());
-
-            return ApiResponse.success("Alimento removido com sucesso");
-
         } catch (Exception e) {
             log.error("Error deleting food: {}", e.getMessage());
-            return ApiResponse.error("Erro interno do servidor");
+            throw new UnprocessableEntityException("Erro interno do servidor");
         }
     }
 
@@ -455,8 +444,7 @@ public class FoodService {
         // Buscar preferência do usuário se logado
         String userPreference = null;
         if (currentUser != null) {
-            UserFoodPreference preference = preferenceRepository.findByUserAndFood(currentUser, food)
-                    .orElse(null);
+            UserFoodPreference preference = preferenceRepository.findByUserAndFood(currentUser, food).orElse(null);
             if (preference != null) {
                 userPreference = preference.getPreferenceType().name();
             }
@@ -478,6 +466,7 @@ public class FoodService {
                 .sugarPer100g(food.getSugarPer100g())
                 .sodiumPer100g(food.getSodiumPer100g())
                 .saturatedFatPer100g(food.getSaturatedFatPer100g())
+                .quantityEquivalence(food.getQuantityEquivalence())
                 .servingSize(food.getServingSize())
                 .servingDescription(food.getServingDescription())
                 .caloriesPerServing(food.getCaloriesPerServing())

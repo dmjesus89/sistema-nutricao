@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- Create Calorie Entries Table -->
+    <changeSet id="026-create-calorie-entries-table" author="nutrition-system">
+        <createTable tableName="calorie_entries">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entry_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="calories" type="DECIMAL(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="carbs" type="DECIMAL(6,2)"/>
+            <column name="protein" type="DECIMAL(6,2)"/>
+            <column name="fat" type="DECIMAL(6,2)"/>
+            <column name="food_id" type="BIGINT"/>
+            <column name="meal_id" type="BIGINT"/>
+            <column name="quantity_grams" type="DECIMAL(8,2)"/>
+            <column name="description" type="VARCHAR(500)"/>
+            <column name="notes" type="VARCHAR(1000)"/>
+            <column name="consumed_at" type="TIMESTAMP"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <!-- Foreign Keys -->
+        <addForeignKeyConstraint baseTableName="calorie_entries"
+                                 baseColumnNames="user_id"
+                                 constraintName="fk_calorie_entries_user"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="calorie_entries"
+                                 baseColumnNames="food_id"
+                                 constraintName="fk_calorie_entries_food"
+                                 referencedTableName="foods"
+                                 referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+
+        <addForeignKeyConstraint baseTableName="calorie_entries"
+                                 baseColumnNames="meal_id"
+                                 constraintName="fk_calorie_entries_meal"
+                                 referencedTableName="meals"
+                                 referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+
+        <!-- Indexes for performance -->
+        <createIndex indexName="idx_calorie_entries_user_date" tableName="calorie_entries">
+            <column name="user_id"/>
+            <column name="date"/>
+        </createIndex>
+
+        <createIndex indexName="idx_calorie_entries_user_consumed_at" tableName="calorie_entries">
+            <column name="user_id"/>
+            <column name="consumed_at"/>
+        </createIndex>
+
+        <createIndex indexName="idx_calorie_entries_entry_type" tableName="calorie_entries">
+            <column name="entry_type"/>
+        </createIndex>
+
+        <createIndex indexName="idx_calorie_entries_food" tableName="calorie_entries">
+            <column name="food_id"/>
+        </createIndex>
+
+        <createIndex indexName="idx_calorie_entries_meal" tableName="calorie_entries">
+            <column name="meal_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Add constraints for valid enum values -->
+    <changeSet id="027-add-calorie-entries-constraints" author="nutrition-system">
+        <comment>Add check constraints for enum values and valid ranges</comment>
+
+        <!-- Entry type constraint -->
+        <sql>
+            ALTER TABLE calorie_entries
+                ADD CONSTRAINT chk_calorie_entries_entry_type
+                    CHECK (entry_type IN ('MANUAL', 'FOOD', 'MEAL'));
+        </sql>
+
+        <!-- Calories must be positive -->
+        <sql>
+            ALTER TABLE calorie_entries
+                ADD CONSTRAINT chk_calorie_entries_calories_positive
+                    CHECK (calories > 0);
+        </sql>
+
+        <!-- Macros must be non-negative if provided -->
+        <sql>
+            ALTER TABLE calorie_entries
+                ADD CONSTRAINT chk_calorie_entries_carbs_non_negative
+                    CHECK (carbs IS NULL OR carbs >= 0);
+        </sql>
+
+        <sql>
+            ALTER TABLE calorie_entries
+                ADD CONSTRAINT chk_calorie_entries_protein_non_negative
+                    CHECK (protein IS NULL OR protein >= 0);
+        </sql>
+
+        <sql>
+            ALTER TABLE calorie_entries
+                ADD CONSTRAINT chk_calorie_entries_fat_non_negative
+                    CHECK (fat IS NULL OR fat >= 0);
+        </sql>
+
+        <!-- Quantity must be positive if provided -->
+        <sql>
+            ALTER TABLE calorie_entries
+                ADD CONSTRAINT chk_calorie_entries_quantity_positive
+                    CHECK (quantity_grams IS NULL OR quantity_grams > 0);
+        </sql>
+
+        <!-- Business logic constraints -->
+        <sql>
+            ALTER TABLE calorie_entries
+                ADD CONSTRAINT chk_calorie_entries_food_logic
+                    CHECK (
+                        (entry_type = 'FOOD' AND food_id IS NOT NULL AND quantity_grams IS NOT NULL) OR
+                        (entry_type != 'FOOD')
+                        );
+        </sql>
+
+        <sql>
+            ALTER TABLE calorie_entries
+                ADD CONSTRAINT chk_calorie_entries_meal_logic
+                    CHECK (
+                        (entry_type = 'MEAL' AND meal_id IS NOT NULL) OR
+                        (entry_type != 'MEAL')
+                        );
+        </sql>
+
+        <sql>
+            ALTER TABLE calorie_entries
+                ADD CONSTRAINT chk_calorie_entries_manual_logic
+                    CHECK (
+                        (entry_type = 'MANUAL' AND description IS NOT NULL AND description != '') OR
+                        (entry_type != 'MANUAL')
+                        );
+        </sql>
+    </changeSet>
+
+    <!-- Create sample data for testing -->
+    <changeSet id="028-create-sample-calorie-entries" author="nutrition-system" context="dev">
+        <comment>Sample calorie entries for development</comment>
+
+        <!-- Manual entry sample -->
+        <sql>
+            INSERT INTO calorie_entries (user_id, date, entry_type, calories, carbs, protein, fat, description, notes, consumed_at)
+            SELECT
+                u.id,
+                CURRENT_DATE,
+                'MANUAL',
+                350.00,
+                45.00,
+                8.00,
+                12.00,
+                'Sanduíche natural de peito de peru',
+                'Lanche da manhã - padaria do bairro',
+                CURRENT_TIMESTAMP - INTERVAL '2 hours'
+            FROM users u
+            WHERE u.email = 'admin@sistema-nutricao.com'
+              AND NOT EXISTS (
+                SELECT 1 FROM calorie_entries ce
+                WHERE ce.user_id = u.id
+              AND ce.date = CURRENT_DATE
+              AND ce.description = 'Sanduíche natural de peito de peru'
+                );
+        </sql>
+
+        <!-- Food entry sample (using existing food) -->
+        <sql>
+            INSERT INTO calorie_entries (user_id, date, entry_type, calories, carbs, protein, fat, food_id, quantity_grams, description, consumed_at)
+            SELECT
+                u.id,
+                CURRENT_DATE,
+                'FOOD',
+                78.00,
+                18.00,
+                0.45,
+                0.15,
+                f.id,
+                150.00,
+                '150g de Maçã',
+                CURRENT_TIMESTAMP - INTERVAL '1 hour'
+            FROM users u
+                CROSS JOIN foods f
+            WHERE u.email = 'admin@sistema-nutricao.com'
+              AND f.name = 'Maçã'
+              AND NOT EXISTS (
+                SELECT 1 FROM calorie_entries ce
+                WHERE ce.user_id = u.id
+              AND ce.date = CURRENT_DATE
+              AND ce.food_id = f.id
+                );
+        </sql>
+
+        <!-- Yesterday's entries for history -->
+        <sql>
+            INSERT INTO calorie_entries (user_id, date, entry_type, calories, carbs, protein, fat, description, notes, consumed_at)
+            SELECT
+                u.id,
+                CURRENT_DATE - INTERVAL '1 day',
+                'MANUAL',
+                520.00,
+                65.00,
+                25.00,
+                18.00,
+                'Prato feito - arroz, feijão, frango grelhado e salada',
+                'Almoço no restaurante da empresa',
+                (CURRENT_DATE - INTERVAL '1 day')::timestamp + TIME '12:30:00'
+            FROM users u
+            WHERE u.email = 'admin@sistema-nutricao.com'
+              AND NOT EXISTS (
+                SELECT 1 FROM calorie_entries ce
+                WHERE ce.user_id = u.id
+              AND ce.date = CURRENT_DATE - INTERVAL '1 day'
+              AND ce.description LIKE '%Prato feito%'
+                );
+        </sql>
+
+        <sql>
+            INSERT INTO calorie_entries (user_id, date, entry_type, calories, carbs, protein, fat, description, notes, consumed_at)
+            SELECT
+                u.id,
+                CURRENT_DATE - INTERVAL '1 day',
+                'MANUAL',
+                180.00,
+                12.00,
+                15.00,
+                8.00,
+                'Vitamina de banana com leite',
+                'Lanche da tarde',
+                (CURRENT_DATE - INTERVAL '1 day')::timestamp + TIME '15:00:00'
+            FROM users u
+            WHERE u.email = 'admin@sistema-nutricao.com'
+              AND NOT EXISTS (
+                SELECT 1 FROM calorie_entries ce
+                WHERE ce.user_id = u.id
+              AND ce.date = CURRENT_DATE - INTERVAL '1 day'
+              AND ce.description LIKE '%Vitamina%'
+                );
+        </sql>
+    </changeSet>
+
+    <!-- Add serving_unit field to foods table (if missing) -->
+    <changeSet id="029-add-serving-unit-to-foods" author="nutrition-system">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="foods" columnName="serving_unit"/>
+            </not>
+        </preConditions>
+
+        <addColumn tableName="foods">
+            <column name="serving_unit" type="VARCHAR(20)"/>
+        </addColumn>
+
+        <createIndex indexName="idx_foods_serving_unit" tableName="foods">
+            <column name="serving_unit"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

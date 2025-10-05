@@ -80,8 +80,3 @@ public class UserFoodPreference {
         }
     }
 }
-
-// ========== User Supplement Preferences ==========
-
-// ========== User Dietary Restrictions ==========
-

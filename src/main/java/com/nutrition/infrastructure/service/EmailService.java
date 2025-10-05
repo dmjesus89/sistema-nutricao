@@ -6,7 +6,6 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -24,11 +23,14 @@ public class EmailService {
     @Value("${app.email.from}")
     private String fromEmail;
 
+    @Value("${app.frontend.url}")
+    private String frontEndUrl;
+
     @Async
     public CompletableFuture<Void> sendConfirmationEmail(String to, String firstName, String confirmationToken) {
         try {
             String subject = "Confirme sua conta - Sistema de Nutrição";
-            String confirmationUrl = "http://192.168.68.60:8080/api/v1/auth/confirm?token=" + confirmationToken;
+            String confirmationUrl = frontEndUrl + "/auth/email-confirmed?token=" + confirmationToken;
 
             String htmlContent = buildConfirmationEmailTemplate(firstName, confirmationUrl);
 
@@ -46,9 +48,8 @@ public class EmailService {
     public CompletableFuture<Void> sendPasswordResetEmail(String to, String firstName, String resetToken) {
         try {
             String subject = "Redefinição de senha - Sistema de Nutrição";
-            String resetUrl = "http://localhost:8080/api/v1/auth/reset-password?token=" + resetToken;
-
-            String htmlContent = buildPasswordResetEmailTemplate(firstName, resetUrl);
+            String passwordResetConfirmationUrl  = frontEndUrl + "/auth/password-reset-confirmed?token=" + resetToken;
+            String htmlContent = buildPasswordResetEmailTemplate(firstName, passwordResetConfirmationUrl);
 
             sendHtmlEmail(to, subject, htmlContent);
             log.info("Password reset email sent successfully to: {}", to);
@@ -64,7 +65,8 @@ public class EmailService {
     public CompletableFuture<Void> sendWelcomeEmail(String to, String firstName) {
         try {
             String subject = "Bem-vindo ao Sistema de Nutrição!";
-            String htmlContent = buildWelcomeEmailTemplate(firstName);
+            String loginUrl  = frontEndUrl + "/auth/login";
+            String htmlContent = buildWelcomeEmailTemplate(firstName,loginUrl);
 
             sendHtmlEmail(to, subject, htmlContent);
             log.info("Welcome email sent successfully to: {}", to);
@@ -75,16 +77,6 @@ public class EmailService {
             // Don't throw exception for welcome email as it's not critical
             return CompletableFuture.completedFuture(null);
         }
-    }
-
-    private void sendSimpleEmail(String to, String subject, String text) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(text);
-
-        mailSender.send(message);
     }
 
     private void sendHtmlEmail(String to, String subject, String htmlContent) throws MessagingException {
@@ -153,7 +145,7 @@ public class EmailService {
                 """, firstName, resetUrl, resetUrl);
     }
 
-    private String buildWelcomeEmailTemplate(String firstName) {
+    private String buildWelcomeEmailTemplate(String firstName, String loginUrl) {
         return String.format("""
                 <!DOCTYPE html>
                 <html>
@@ -174,11 +166,12 @@ public class EmailService {
                         </ul>
                         <p>Estamos aqui para ajudá-lo em sua jornada para uma vida mais saudável!</p>
                         <div style="text-align: center; margin: 30px 0;">
-                            <a href="http://192.168.68.60:3000/auth/login" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Fazer Login</a>
+                            <a href="%s" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Fazer Login</a>
                         </div>
                     </div>
                 </body>
                 </html>
-                """, firstName);
+                """, firstName, loginUrl);
     }
+
 }

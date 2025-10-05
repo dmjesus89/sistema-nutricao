@@ -52,11 +52,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             if (currentAttempts >= maxAttempts) {
                 response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
                 response.setContentType("application/json");
-                response.getWriter().write(
-                        "{\"success\": false, \"message\": \"Muitas tentativas de login. Tente novamente em " +
-                                windowSeconds / 60 + " minutos.\"}"
-                );
-                return;
+                response.getWriter().write("{\"message\":\"Muitas tentativas de login. Tente novamente em " + windowSeconds / 60 + " minutos.\"}");
+                return; // Stop processing - don't continue filter chain
             }
 
             filterChain.doFilter(request, response);
@@ -65,8 +62,13 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                 incrementAttempts(key);
             }
 
+        } catch (NumberFormatException e) {
+            log.error("Error parsing rate limit counter: {}", e.getMessage());
+            // Continue with request if Redis data is corrupted
+            filterChain.doFilter(request, response);
         } catch (Exception e) {
             log.error("Error in rate limiting filter: {}", e.getMessage());
+            // For other errors, allow the request to proceed (fail open)
             filterChain.doFilter(request, response);
         }
     }

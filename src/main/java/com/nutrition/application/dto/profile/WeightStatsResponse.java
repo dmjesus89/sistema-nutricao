@@ -1,5 +1,6 @@
 package com.nutrition.application.dto.profile;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 
 @Data
@@ -44,5 +46,14 @@ public class WeightStatsResponse {
 
     @JsonProperty("averageWeeklyChange")
     private BigDecimal averageWeeklyChange;
+
+    @JsonProperty("monthlyChange")
+    private BigDecimal monthlyChange;
+
+    @JsonProperty("lastRecordDate")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    private LocalDate lastRecordDate;
+
+
 }
 

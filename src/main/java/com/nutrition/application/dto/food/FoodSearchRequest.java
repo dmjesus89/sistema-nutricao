@@ -14,8 +14,13 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class FoodSearchRequest {
 
+    @JsonProperty("name")
     private String name;
+
+    @JsonProperty("category")
     private String category;
+
+    @JsonProperty("brand")
     private String brand;
 
     @JsonProperty("minCalories")
