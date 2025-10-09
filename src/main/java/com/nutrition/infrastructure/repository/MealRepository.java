@@ -8,7 +8,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,26 +33,4 @@ public interface MealRepository extends JpaRepository<Meal, Long> {
 
     @Query("SELECT DISTINCT m FROM Meal m LEFT JOIN FETCH m.foods mf LEFT JOIN FETCH mf.food WHERE m.user = :user AND m.name LIKE %:name% ORDER BY m.mealTime ASC")
     List<Meal> findByUserAndNameContainingIgnoreCase(@Param("user") User user, @Param("name") String name);
-
-      // Find consumed meals for a specific date
-    @Query("SELECT DISTINCT m FROM Meal m LEFT JOIN FETCH m.foods mf LEFT JOIN FETCH mf.food " +
-            "WHERE m.user.id = :userId " +
-            "AND m.consumed = true " +
-            "AND DATE(m.consumedAt) = :date " +
-            "ORDER BY m.consumedAt ASC")
-    List<Meal> findConsumedMealsByUserAndDate(@Param("userId") Long userId,
-                                              @Param("date") LocalDate date);
-
-    // Find consumed meals between dates
-    @Query("SELECT DISTINCT m FROM Meal m LEFT JOIN FETCH m.foods mf LEFT JOIN FETCH mf.food " +
-            "WHERE m.user.id = :userId " +
-            "AND m.consumed = true " +
-            "AND DATE(m.consumedAt) BETWEEN :startDate AND :endDate " +
-            "ORDER BY m.consumedAt DESC")
-    List<Meal> findConsumedMealsByUserAndDateRange(@Param("userId") Long userId,
-                                                   @Param("startDate") LocalDate startDate,
-                                                   @Param("endDate") LocalDate endDate);
-
-
-
 }
