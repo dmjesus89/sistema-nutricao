@@ -43,13 +43,19 @@ public class Meal {
     @Builder.Default
     private List<MealFood> foods = new ArrayList<>();
 
-    // New fields for consumption tracking
-    @Column(name = "consumed", nullable = false)
+    // Template and meal type fields
+    @Column(name = "is_template", nullable = false)
     @Builder.Default
-    private Boolean consumed = false;
+    private Boolean isTemplate = true;
 
-    @Column(name = "consumed_at")
-    private LocalDateTime consumedAt;
+    @Column(name = "is_one_time", nullable = false)
+    @Builder.Default
+    private Boolean isOneTime = false;
+
+    // Relationship to meal consumptions
+    @OneToMany(mappedBy = "meal", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @Builder.Default
+    private List<MealConsumption> consumptions = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
@@ -116,18 +122,6 @@ public class Meal {
         return foods.stream()
                 .map(mealFood -> mealFood.getTotalSodium() != null ? mealFood.getTotalSodium() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    // New method to mark meal as consumed
-    public void markAsConsumed() {
-        this.consumed = true;
-        this.consumedAt = LocalDateTime.now();
-    }
-
-    // Method to mark meal as not consumed
-    public void markAsNotConsumed() {
-        this.consumed = false;
-        this.consumedAt = null;
     }
 
     // Existing methods...

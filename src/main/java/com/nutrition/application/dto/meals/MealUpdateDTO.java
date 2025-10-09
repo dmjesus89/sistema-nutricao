@@ -17,7 +17,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MealCreateDTO {
+public class MealUpdateDTO {
 
     @NotNull(message = "Horário da refeição é obrigatório")
     @JsonProperty("mealTime")
@@ -29,8 +29,4 @@ public class MealCreateDTO {
     @NotEmpty(message = "Pelo menos um alimento deve ser adicionado à refeição")
     @Valid
     private List<MealFoodDTO> foods;
-
-    @JsonProperty("isOneTime")
-    @Builder.Default
-    private Boolean isOneTime = false;
 }

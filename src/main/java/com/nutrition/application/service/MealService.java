@@ -1,22 +1,16 @@
 package com.nutrition.application.service;
 
 import com.nutrition.application.dto.food.FoodResponse;
-import com.nutrition.application.dto.meals.ConsumedMealDTO;
-import com.nutrition.application.dto.meals.DailyConsumedMealsDTO;
-import com.nutrition.application.dto.meals.MealConsumptionDTO;
-import com.nutrition.application.dto.meals.MealConsumptionResponseDTO;
-import com.nutrition.application.dto.meals.MealCreateDTO;
-import com.nutrition.application.dto.meals.MealFoodDTO;
-import com.nutrition.application.dto.meals.MealFoodResponseDTO;
-import com.nutrition.application.dto.meals.MealHistoryDTO;
-import com.nutrition.application.dto.meals.MealResponseDTO;
+import com.nutrition.application.dto.meals.*;
 import com.nutrition.domain.entity.auth.User;
 import com.nutrition.domain.entity.food.Food;
 import com.nutrition.domain.entity.meal.Meal;
+import com.nutrition.domain.entity.meal.MealConsumption;
 import com.nutrition.domain.entity.meal.MealFood;
 import com.nutrition.domain.entity.tracking.CalorieEntry;
 import com.nutrition.infrastructure.repository.CalorieEntryRepository;
 import com.nutrition.infrastructure.repository.FoodRepository;
+import com.nutrition.infrastructure.repository.MealConsumptionRepository;
 import com.nutrition.infrastructure.repository.MealRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +21,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,11 +33,12 @@ public class MealService {
     private final MealRepository mealRepository;
     private final FoodRepository foodRepository;
     private final CalorieEntryRepository calorieEntryRepository;
+    private final MealConsumptionRepository mealConsumptionRepository;
 
-    public MealResponseDTO createMeal(MealCreateDTO createDTO, User user) {
+    public MealTemplateResponseDTO createMeal(MealCreateDTO createDTO, User user) {
         log.info("Creating meal: {} for user: {}", createDTO.getName(), user.getId());
 
-        // Validar se todos os alimentos existem
+        // Validate all foods exist
         List<Long> foodIds = createDTO.getFoods().stream()
                 .map(MealFoodDTO::getFoodId)
                 .collect(Collectors.toList());
@@ -52,14 +48,16 @@ public class MealService {
             throw new IllegalArgumentException("Um ou mais alimentos não foram encontrados");
         }
 
-        // Criar a refeição
+        // Create the meal
         Meal meal = Meal.builder()
                 .name(createDTO.getName())
                 .mealTime(createDTO.getMealTime())
                 .user(user)
+                .isTemplate(!createDTO.getIsOneTime())
+                .isOneTime(createDTO.getIsOneTime())
                 .build();
 
-        // Adicionar os alimentos à refeição
+        // Add foods to meal
         for (MealFoodDTO mealFoodDTO : createDTO.getFoods()) {
             Food food = foods.stream()
                     .filter(f -> f.getId().equals(mealFoodDTO.getFoodId()))
@@ -75,31 +73,91 @@ public class MealService {
             meal.addFood(mealFood);
         }
 
-        // Salvar a refeição
+        // Save the meal
         Meal savedMeal = mealRepository.save(meal);
         log.info("Meal created successfully with ID: {}", savedMeal.getId());
 
-        return mapToResponseDTO(savedMeal);
+        return mapToTemplateResponseDTO(savedMeal, false);
+    }
+
+    public MealTemplateResponseDTO updateMeal(Long mealId, MealUpdateDTO updateDTO, User user) {
+        log.info("Updating meal: {} for user: {}", mealId, user.getId());
+
+        Meal meal = mealRepository.findByIdAndUser(mealId, user)
+                .orElseThrow(() -> new IllegalArgumentException("Refeição não encontrada"));
+
+        // Validate all foods exist
+        List<Long> foodIds = updateDTO.getFoods().stream()
+                .map(MealFoodDTO::getFoodId)
+                .collect(Collectors.toList());
+
+        List<Food> foods = foodRepository.findAllById(foodIds);
+        if (foods.size() != foodIds.size()) {
+            throw new IllegalArgumentException("Um ou mais alimentos não foram encontrados");
+        }
+
+        // Update meal properties
+        meal.setName(updateDTO.getName());
+        meal.setMealTime(updateDTO.getMealTime());
+
+        // Clear existing foods and add new ones
+        meal.getFoods().clear();
+
+        for (MealFoodDTO mealFoodDTO : updateDTO.getFoods()) {
+            Food food = foods.stream()
+                    .filter(f -> f.getId().equals(mealFoodDTO.getFoodId()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Alimento não encontrado: " + mealFoodDTO.getFoodId()));
+
+            MealFood mealFood = MealFood.builder()
+                    .food(food)
+                    .quantity(mealFoodDTO.getQuantity())
+                    .unit(mealFoodDTO.getUnit() != null ? mealFoodDTO.getUnit() : "g")
+                    .build();
+
+            meal.addFood(mealFood);
+        }
+
+        Meal updatedMeal = mealRepository.save(meal);
+        log.info("Meal updated successfully: {}", mealId);
+
+        // Check if consumed today
+        boolean isConsumedToday = mealConsumptionRepository.existsByMealIdAndUserIdAndConsumptionDate(
+                mealId, user.getId(), LocalDate.now());
+
+        return mapToTemplateResponseDTO(updatedMeal, isConsumedToday);
     }
 
     @Transactional(readOnly = true)
-    public List<MealResponseDTO> getUserMeals(User user) {
-        log.info("Fetching meals for user: {}", user.getId());
+    public List<MealTemplateResponseDTO> getUserMealTemplates(User user) {
+        log.info("Fetching meal templates for user: {}", user.getId());
 
         List<Meal> meals = mealRepository.findByUserOrderByMealTimeAsc(user);
+
+        // Get today's consumed meal IDs
+        LocalDate today = LocalDate.now();
+        Set<Long> consumedMealIds = mealConsumptionRepository
+                .findByUserIdAndConsumptionDate(user.getId(), today)
+                .stream()
+                .map(mc -> mc.getMeal().getId())
+                .collect(Collectors.toSet());
+
         return meals.stream()
-                .map(this::mapToResponseDTO)
+                .map(meal -> mapToTemplateResponseDTO(meal, consumedMealIds.contains(meal.getId())))
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public MealResponseDTO getMealById(Long mealId, User user) {
+    public MealTemplateResponseDTO getMealById(Long mealId, User user) {
         log.info("Fetching meal: {} for user: {}", mealId, user.getId());
 
         Meal meal = mealRepository.findByIdAndUser(mealId, user)
                 .orElseThrow(() -> new IllegalArgumentException("Refeição não encontrada"));
 
-        return mapToResponseDTO(meal);
+        boolean isConsumedToday = mealConsumptionRepository.existsByMealIdAndUserIdAndConsumptionDate(
+                mealId, user.getId(), LocalDate.now());
+
+        return mapToTemplateResponseDTO(meal, isConsumedToday);
     }
 
     public void deleteMeal(Long mealId, User user) {
@@ -112,15 +170,179 @@ public class MealService {
         log.info("Meal deleted successfully: {}", mealId);
     }
 
-    private MealResponseDTO mapToResponseDTO(Meal meal) {
+    public MealConsumptionResponseDTO consumeMeal(Long mealId, User user, ConsumeMealDTO consumeDTO) {
+        log.info("Marking meal {} as consumed for user: {}", mealId, user.getId());
+
+        Meal meal = mealRepository.findByIdAndUser(mealId, user)
+                .orElseThrow(() -> new IllegalArgumentException("Refeição não encontrada"));
+
+        LocalDate consumptionDate = consumeDTO.getConsumptionDate() != null
+                ? consumeDTO.getConsumptionDate()
+                : LocalDate.now();
+
+        // Check if already consumed on this date
+        if (mealConsumptionRepository.existsByMealIdAndUserIdAndConsumptionDate(
+                mealId, user.getId(), consumptionDate)) {
+            throw new IllegalArgumentException("Esta refeição já foi marcada como consumida nesta data");
+        }
+
+        // Create meal consumption
+        MealConsumption consumption = MealConsumption.builder()
+                .meal(meal)
+                .user(user)
+                .consumptionDate(consumptionDate)
+                .notes(consumeDTO.getNotes())
+                .build();
+
+        mealConsumptionRepository.save(consumption);
+
+        // Create calorie entry
+        createCalorieEntryForConsumption(consumption, meal);
+
+        return MealConsumptionResponseDTO.builder()
+                .mealId(mealId)
+                .isConsumed(true)
+                .consumedAt(consumption.getConsumedAt())
+                .message("Refeição marcada como consumida")
+                .build();
+    }
+
+    public MealConsumptionResponseDTO unconsumeMeal(Long mealId, User user, LocalDate consumptionDate) {
+        log.info("Unmarking meal {} as consumed for user: {} on date: {}",
+                mealId, user.getId(), consumptionDate);
+
+        // Validate meal exists and belongs to user
+        mealRepository.findByIdAndUser(mealId, user)
+                .orElseThrow(() -> new IllegalArgumentException("Refeição não encontrada"));
+
+        LocalDate dateToUnconsume = consumptionDate != null ? consumptionDate : LocalDate.now();
+
+        // Find and delete the consumption
+        MealConsumption consumption = mealConsumptionRepository
+                .findByMealIdAndUserIdAndConsumptionDate(mealId, user.getId(), dateToUnconsume)
+                .orElseThrow(() -> new IllegalArgumentException("Consumo não encontrado para esta data"));
+
+        // Delete associated calorie entry
+        removeCalorieEntryForConsumption(consumption);
+
+        // Delete consumption
+        mealConsumptionRepository.delete(consumption);
+
+        return MealConsumptionResponseDTO.builder()
+                .mealId(mealId)
+                .isConsumed(false)
+                .consumedAt(null)
+                .message("Refeição desmarcada")
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public DailyConsumedMealsDTO getConsumedMealsForDate(User user, LocalDate date) {
+        log.info("Fetching consumed meals for user: {} on date: {}", user.getId(), date);
+
+        List<MealConsumption> consumptions = mealConsumptionRepository
+                .findByUserIdAndConsumptionDate(user.getId(), date);
+
+        List<ConsumedMealDTO> mealDTOs = consumptions.stream()
+                .map(this::mapToConsumedMealDTO)
+                .collect(Collectors.toList());
+
+        DailyConsumedMealsDTO.DailyNutritionalSummary summary = calculateDailySummary(mealDTOs);
+
+        return DailyConsumedMealsDTO.builder()
+                .date(date)
+                .meals(mealDTOs)
+                .nutritionalSummary(summary)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public DailyConsumedMealsDTO getTodayConsumedMeals(User user) {
+        return getConsumedMealsForDate(user, LocalDate.now());
+    }
+
+    @Transactional(readOnly = true)
+    public MealHistoryDTO getMealHistory(User user, LocalDate startDate, LocalDate endDate) {
+        log.info("Fetching meal history for user: {} from {} to {}",
+                user.getId(), startDate, endDate);
+
+        List<MealConsumption> consumptions = mealConsumptionRepository
+                .findByUserIdAndConsumptionDateBetween(user.getId(), startDate, endDate);
+
+        // Group consumptions by date
+        Map<LocalDate, List<MealConsumption>> consumptionsByDate = consumptions.stream()
+                .collect(Collectors.groupingBy(MealConsumption::getConsumptionDate));
+
+        List<DailyConsumedMealsDTO> dailyMeals = consumptionsByDate.entrySet().stream()
+                .map(entry -> {
+                    LocalDate date = entry.getKey();
+                    List<ConsumedMealDTO> dayMeals = entry.getValue().stream()
+                            .map(this::mapToConsumedMealDTO)
+                            .collect(Collectors.toList());
+
+                    DailyConsumedMealsDTO.DailyNutritionalSummary summary = calculateDailySummary(dayMeals);
+
+                    return DailyConsumedMealsDTO.builder()
+                            .date(date)
+                            .meals(dayMeals)
+                            .nutritionalSummary(summary)
+                            .build();
+                })
+                .sorted((a, b) -> b.getDate().compareTo(a.getDate())) // Most recent first
+                .collect(Collectors.toList());
+
+        return MealHistoryDTO.builder()
+                .startDate(startDate)
+                .endDate(endDate)
+                .dailyMeals(dailyMeals)
+                .totalDays(dailyMeals.size())
+                .totalMealsConsumed(consumptions.size())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public MealHistoryDTO getRecentMealHistory(User user, int days) {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(days - 1);
+        return getMealHistory(user, startDate, endDate);
+    }
+
+    // Private helper methods
+
+    private void createCalorieEntryForConsumption(MealConsumption consumption, Meal meal) {
+        CalorieEntry calorieEntry = CalorieEntry.builder()
+                .user(consumption.getUser())
+                .date(consumption.getConsumptionDate())
+                .entryType(CalorieEntry.EntryType.MEAL)
+                .calories(meal.getTotalCalories())
+                .carbs(meal.getTotalCarbs())
+                .protein(meal.getTotalProtein())
+                .fat(meal.getTotalFat())
+                .meal(meal)
+                .description("Refeição: " + meal.getName())
+                .notes(consumption.getNotes())
+                .consumedAt(consumption.getConsumedAt())
+                .build();
+
+        calorieEntryRepository.save(calorieEntry);
+    }
+
+    private void removeCalorieEntryForConsumption(MealConsumption consumption) {
+        calorieEntryRepository.findByMealId(consumption.getMeal().getId())
+                .ifPresent(calorieEntryRepository::delete);
+    }
+
+    private MealTemplateResponseDTO mapToTemplateResponseDTO(Meal meal, boolean isConsumedToday) {
         List<MealFoodResponseDTO> foodResponses = meal.getFoods().stream()
                 .map(this::mapMealFoodToResponseDTO)
                 .collect(Collectors.toList());
 
-        return MealResponseDTO.builder()
+        return MealTemplateResponseDTO.builder()
                 .id(meal.getId())
                 .name(meal.getName())
                 .mealTime(meal.getMealTime())
+                .isTemplate(meal.getIsTemplate())
+                .isOneTime(meal.getIsOneTime())
                 .totalCalories(meal.getTotalCalories())
                 .totalCarbs(meal.getTotalCarbs())
                 .totalProtein(meal.getTotalProtein())
@@ -128,6 +350,7 @@ public class MealService {
                 .totalFiber(meal.getTotalFiber())
                 .totalSodium(meal.getTotalSodium())
                 .foods(foodResponses)
+                .isConsumedToday(isConsumedToday)
                 .createdAt(meal.getCreatedAt())
                 .updatedAt(meal.getUpdatedAt())
                 .build();
@@ -148,36 +371,6 @@ public class MealService {
                 .totalFiber(mealFood.getTotalFiber())
                 .totalSodium(mealFood.getTotalSodium())
                 .build();
-    }
-
-    @Transactional(readOnly = true)
-    public List<MealResponseDTO> searchMealsByName(String name, User user) {
-        log.info("Searching meals by name: {} for user: {}", name, user.getId());
-
-        List<Meal> meals = mealRepository.findByUserAndNameContainingIgnoreCase(user, name);
-        return meals.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<MealResponseDTO> getMealsByDate(java.time.LocalDate date, User user) {
-        log.info("Fetching meals for date: {} and user: {}", date, user.getId());
-
-        List<Meal> meals = mealRepository.findByUserAndDate(user, date);
-        return meals.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<MealResponseDTO> getMealsByDateRange(java.time.LocalDate startDate, java.time.LocalDate endDate, User user) {
-        log.info("Fetching meals for date range: {} to {} for user: {}", startDate, endDate, user.getId());
-
-        List<Meal> meals = mealRepository.findByUserAndDateRange(user, startDate, endDate);
-        return meals.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
     }
 
     private FoodResponse mapFoodToResponseDTO(Food food) {
@@ -213,163 +406,13 @@ public class MealService {
                 .build();
     }
 
-    @Transactional
-    public MealConsumptionResponseDTO toggleMealConsumption(Long mealId, User user, MealConsumptionDTO consumptionDTO) {
-        Meal meal = mealRepository.findByIdAndUser(mealId, user)
-                .orElseThrow(() -> new RuntimeException("Refeição não encontrada"));
+    private ConsumedMealDTO mapToConsumedMealDTO(MealConsumption consumption) {
+        Meal meal = consumption.getMeal();
 
-        if (consumptionDTO.getConsumed()) {
-            return markMealAsConsumed(meal, consumptionDTO.getNotes());
-        } else {
-            return markMealAsNotConsumed(meal);
-        }
-    }
-
-    private MealConsumptionResponseDTO markMealAsConsumed(Meal meal, String notes) {
-        if (meal.getConsumed()) {
-            return MealConsumptionResponseDTO.builder()
-                    .mealId(meal.getId())
-                    .isConsumed(true)
-                    .consumedAt(meal.getConsumedAt())
-                    .message("Refeição já estava marcada como consumida")
-                    .build();
-        }
-
-        // Mark meal as consumed
-        meal.markAsConsumed();
-        mealRepository.save(meal);
-
-        // Create calorie entry
-        createCalorieEntryForMeal(meal, notes);
-
-        return MealConsumptionResponseDTO.builder()
-                .mealId(meal.getId())
-                .isConsumed(true)
-                .consumedAt(meal.getConsumedAt())
-                .message("Refeição marcada como consumida e registrada no diário")
-                .build();
-    }
-
-    private MealConsumptionResponseDTO markMealAsNotConsumed(Meal meal) {
-        if (!meal.getConsumed()) {
-            return MealConsumptionResponseDTO.builder()
-                    .mealId(meal.getId())
-                    .isConsumed(false)
-                    .consumedAt(null)
-                    .message("Refeição já estava marcada como não consumida")
-                    .build();
-        }
-
-        // Remove calorie entry if exists
-        removeCalorieEntryForMeal(meal);
-
-        // Mark meal as not consumed
-        meal.markAsNotConsumed();
-        mealRepository.save(meal);
-
-        return MealConsumptionResponseDTO.builder()
-                .mealId(meal.getId())
-                .isConsumed(false)
-                .consumedAt(null)
-                .message("Refeição desmarcada e removida do diário")
-                .build();
-    }
-
-    private void createCalorieEntryForMeal(Meal meal, String notes) {
-        CalorieEntry calorieEntry = CalorieEntry.builder()
-                .user(meal.getUser())
-                .date(LocalDate.now())
-                .entryType(CalorieEntry.EntryType.MEAL)
-                .calories(meal.getTotalCalories())
-                .carbs(meal.getTotalCarbs())
-                .protein(meal.getTotalProtein())
-                .fat(meal.getTotalFat())
-                .meal(meal)
-                .description("Refeição: " + meal.getName())
-                .notes(notes)
-                .consumedAt(meal.getConsumedAt())
-                .build();
-
-        calorieEntryRepository.save(calorieEntry);
-    }
-
-    private void removeCalorieEntryForMeal(Meal meal) {
-        calorieEntryRepository.findByMealId(meal.getId())
-                .ifPresent(calorieEntryRepository::delete);
-    }
-
-    public DailyConsumedMealsDTO getConsumedMealsForDate(User user, LocalDate date) {
-        List<Meal> consumedMeals = mealRepository.findConsumedMealsByUserAndDate(user.getId(), date);
-
-        List<ConsumedMealDTO> mealDTOs = consumedMeals.stream()
-                .map(this::mapToConsumedMealDTO)
-                .collect(Collectors.toList());
-
-        DailyConsumedMealsDTO.DailyNutritionalSummary summary = calculateDailySummary(mealDTOs);
-
-        return DailyConsumedMealsDTO.builder()
-                .date(date)
-                .meals(mealDTOs)
-                .nutritionalSummary(summary)
-                .build();
-    }
-
-    public DailyConsumedMealsDTO getTodayConsumedMeals(User user) {
-        return getConsumedMealsForDate(user, LocalDate.now());
-    }
-
-    public MealHistoryDTO getMealHistory(User user, LocalDate startDate, LocalDate endDate) {
-        List<Meal> consumedMeals = mealRepository.findConsumedMealsByUserAndDateRange(
-                user.getId(), startDate, endDate);
-
-        // Group meals by date
-        Map<LocalDate, List<Meal>> mealsByDate = consumedMeals.stream()
-                .collect(Collectors.groupingBy(meal -> meal.getConsumedAt().toLocalDate()));
-
-        List<DailyConsumedMealsDTO> dailyMeals = mealsByDate.entrySet().stream()
-                .map(entry -> {
-                    LocalDate date = entry.getKey();
-                    List<ConsumedMealDTO> dayMeals = entry.getValue().stream()
-                            .map(this::mapToConsumedMealDTO)
-                            .collect(Collectors.toList());
-
-                    DailyConsumedMealsDTO.DailyNutritionalSummary summary = calculateDailySummary(dayMeals);
-
-                    return DailyConsumedMealsDTO.builder()
-                            .date(date)
-                            .meals(dayMeals)
-                            .nutritionalSummary(summary)
-                            .build();
-                })
-                .sorted((a, b) -> b.getDate().compareTo(a.getDate())) // Most recent first
-                .collect(Collectors.toList());
-
-        return MealHistoryDTO.builder()
-                .startDate(startDate)
-                .endDate(endDate)
-                .dailyMeals(dailyMeals)
-                .totalDays(dailyMeals.size())
-                .totalMealsConsumed(consumedMeals.size())
-                .build();
-    }
-
-    public MealHistoryDTO getRecentMealHistory(User user, int days) {
-        LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(days - 1);
-        return getMealHistory(user, startDate, endDate);
-    }
-
-    private ConsumedMealDTO mapToConsumedMealDTO(Meal meal) {
-        // Get notes from CalorieEntry if exists
-        String notes = calorieEntryRepository.findMealCalorieEntry(meal.getId())
-                .map(CalorieEntry::getNotes)
-                .orElse(null);
-
-        // Manually map MealFood to MealFoodDTO
         List<MealFoodDTO> foodDTOs = meal.getFoods().stream()
                 .map(mealFood -> MealFoodDTO.builder()
                         .foodId(mealFood.getFood().getId())
-                        .foodName(mealFood.getFood().getName()) // Assuming Food entity has getName()
+                        .foodName(mealFood.getFood().getName())
                         .quantity(mealFood.getQuantity())
                         .unit(mealFood.getUnit())
                         .calories(mealFood.getTotalCalories())
@@ -385,8 +428,8 @@ public class MealService {
                 .id(meal.getId())
                 .name(meal.getName())
                 .mealTime(meal.getMealTime())
-                .consumedAt(meal.getConsumedAt())
-                .consumedDate(meal.getConsumedAt().toLocalDate())
+                .consumedAt(consumption.getConsumedAt())
+                .consumedDate(consumption.getConsumptionDate())
                 .totalCalories(meal.getTotalCalories())
                 .totalCarbs(meal.getTotalCarbs())
                 .totalProtein(meal.getTotalProtein())
@@ -394,7 +437,7 @@ public class MealService {
                 .totalFiber(meal.getTotalFiber())
                 .totalSodium(meal.getTotalSodium())
                 .foods(foodDTOs)
-                .notes(notes)
+                .notes(consumption.getNotes())
                 .build();
     }
 
