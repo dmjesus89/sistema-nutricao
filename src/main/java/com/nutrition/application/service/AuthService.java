@@ -17,7 +17,6 @@ import com.nutrition.infrastructure.repository.PasswordResetTokenRepository;
 import com.nutrition.infrastructure.repository.RefreshTokenRepository;
 import com.nutrition.infrastructure.repository.UserRepository;
 import com.nutrition.infrastructure.security.service.JwtService;
-import com.nutrition.infrastructure.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

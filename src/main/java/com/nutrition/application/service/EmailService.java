@@ -1,4 +1,4 @@
-package com.nutrition.infrastructure.service;
+package com.nutrition.application.service;
 
 
 import jakarta.mail.MessagingException;

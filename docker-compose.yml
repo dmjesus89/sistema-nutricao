@@ -15,15 +15,6 @@ services:
     networks:
       - nutricao-network
 
-  mailhog:
-    image: mailhog/mailhog
-    container_name: nutricao-mailhog
-    ports:
-      - "1025:1025"  # SMTP server
-      - "8025:8025"  # Web UI
-    networks:
-      - nutricao-network
-
 volumes:
   postgres_data:
 
