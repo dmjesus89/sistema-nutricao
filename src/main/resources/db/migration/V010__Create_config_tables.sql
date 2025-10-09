@@ -45,14 +45,14 @@ ALTER TABLE goals
 
 -- Insert default activity levels
 INSERT INTO activity_levels (code, display_name, description, multiplier, display_order) VALUES
-('SEDENTARY', 'Sedentário', 'Trabalha sentado, deslocamento mínimo, rotina bem parada.', 1.200, 1),
-('LIGHTLY_ACTIVE', 'Levemente ativo', 'Trabalha sentado mas se movimenta no dia (anda bastante, faz compras, cuida da casa, pega transporte público etc.).', 1.375, 2),
-('MODERATELY_ACTIVE', 'Moderadamente ativo', 'Rotina com movimento frequente + algumas atividades físicas recreativas (ex: anda muito todo dia + faz caminhadas longas, mas sem treino estruturado).', 1.550, 3),
-('VERY_ACTIVE', 'Muito ativo', 'Trabalho fisicamente exigente (pedreiro, garçom andando 10h, entregador de bike, ajudante de mudanças, etc.).', 1.725, 4),
-('EXTREMELY_ACTIVE', 'Extremamente ativo', 'Trabalhadores rurais de carga pesada, atletas, militares, pessoas que gastam energia de forma intensa diária.', 1.900, 5);
+('SEDENTARY', 'Sedentary', 'Seated work, minimal movement, very still routine.', 1.200, 1),
+('LIGHTLY_ACTIVE', 'Lightly Active', 'Seated work but moves throughout the day (walks a lot, shops, takes care of home, uses public transport, etc.).', 1.375, 2),
+('MODERATELY_ACTIVE', 'Moderately Active', 'Routine with frequent movement + some recreational physical activities (e.g., walks a lot daily + takes long walks, but no structured training).', 1.550, 3),
+('VERY_ACTIVE', 'Very Active', 'Physically demanding work (bricklayer, waiter walking 10h, bike delivery, moving helper, etc.).', 1.725, 4),
+('EXTREMELY_ACTIVE', 'Extremely Active', 'Heavy load rural workers, athletes, military, people who spend energy intensively daily.', 1.900, 5);
 
 -- Insert default goals
 INSERT INTO goals (code, display_name, description, calorie_adjustment_type, calorie_adjustment_value, display_order) VALUES
-('LOSE_WEIGHT', 'Perder Gordura/Manter Massa Magra', 'Déficit calórico moderado para perda de gordura preservando massa magra.', 'PERCENTAGE', -15.00, 1),
-('MAINTAIN_WEIGHT', 'Manter peso', 'Manutenção do peso atual com equilíbrio calórico.', 'NONE', 0.00, 2),
-('GAIN_WEIGHT', 'Ganhar peso', 'Superávit calórico para ganho de massa muscular.', 'PERCENTAGE', 10.00, 3);
+('LOSE_WEIGHT', 'Lose Fat/Maintain Lean Muscle', 'Moderate caloric deficit for fat loss while preserving lean muscle.', 'PERCENTAGE', -15.00, 1),
+('MAINTAIN_WEIGHT', 'Maintain Weight', 'Maintaining current weight with caloric balance.', 'NONE', 0.00, 2),
+('GAIN_WEIGHT', 'Gain Weight', 'Caloric surplus for muscle mass gain.', 'PERCENTAGE', 10.00, 3);

@@ -48,13 +48,13 @@ public class UserProfile {
     private Gender gender;
 
     @Column(name = "height", precision = 5, scale = 2)
-    private BigDecimal height; // em centímetros
+    private BigDecimal height; // in centimeters
 
     @Column(name = "current_weight", precision = 5, scale = 2)
-    private BigDecimal currentWeight; // em quilogramas
+    private BigDecimal currentWeight; // in kilograms
 
     @Column(name = "target_weight", precision = 5, scale = 2)
-    private BigDecimal targetWeight; // em quilogramas
+    private BigDecimal targetWeight; // in kilograms
 
     @Column(name = "target_date")
     private LocalDate targetDate;
@@ -70,13 +70,13 @@ public class UserProfile {
     private Goal goal = Goal.MAINTAIN_WEIGHT;
 
     @Column(name = "basal_metabolic_rate", precision = 7, scale = 2)
-    private BigDecimal basalMetabolicRate; // Taxa Metabólica Basal
+    private BigDecimal basalMetabolicRate; // Basal Metabolic Rate
 
     @Column(name = "total_daily_energy_expenditure", precision = 7, scale = 2)
     private BigDecimal totalDailyEnergyExpenditure; // Total Daily Energy Expenditure
 
     @Column(name = "daily_calories", precision = 7, scale = 2)
-    private BigDecimal dailyCalorieTarget; // Calorias diárias baseadas no objetivo
+    private BigDecimal dailyCalorieTarget; // Daily calories based on goal
 
     @Column(name = "daily_water_intake", precision = 7, scale = 2)
     private BigDecimal dailyWaterIntake;
@@ -107,7 +107,7 @@ public class UserProfile {
             return null;
         }
 
-        // BodyMassIndex = peso (kg) / (altura (m))²
+        // BMI = weight (kg) / (height (m))²
         BigDecimal heightInMeters = height.divide(BigDecimal.valueOf(100), 4, BigDecimal.ROUND_HALF_UP);
         BigDecimal heightSquared = heightInMeters.multiply(heightInMeters);
 
@@ -117,24 +117,24 @@ public class UserProfile {
     public String getBodyMassIndexCategory() {
         BigDecimal bodyMassIndex = getBodyMassIndex();
         if (bodyMassIndex == null) {
-            return "Não calculado";
+            return "Not calculated";
         }
 
         if (bodyMassIndex.compareTo(BigDecimal.valueOf(18.5)) < 0) {
-            return "Abaixo do peso";
+            return "Underweight";
         } else if (bodyMassIndex.compareTo(BigDecimal.valueOf(25)) < 0) {
-            return "Peso normal";
+            return "Normal weight";
         } else if (bodyMassIndex.compareTo(BigDecimal.valueOf(30)) < 0) {
-            return "Sobrepeso";
+            return "Overweight";
         } else {
-            return "Obesidade";
+            return "Obese";
         }
     }
 
     public enum Gender {
-        MALE("Masculino"),
-        FEMALE("Feminino"),
-        OTHER("Outro");
+        MALE("Male"),
+        FEMALE("Female"),
+        OTHER("Other");
 
         private final String displayName;
 
@@ -148,11 +148,11 @@ public class UserProfile {
     }
 
     public enum ActivityLevel {
-        SEDENTARY("Sedentário", 1.2),           // trabalha sentado, deslocamento mínimo, rotina bem parada.
-        LIGHTLY_ACTIVE("Levemente ativo", 1.375), // trabalha sentado mas se movimenta no dia (anda bastante, faz compras, cuida da casa, pega transporte público etc.).
-        MODERATELY_ACTIVE("Moderadamente ativo", 1.55), // rotina com movimento frequente + algumas atividades físicas recreativas (ex: anda muito todo dia + faz caminhadas longas, mas sem treino estruturado).
-        VERY_ACTIVE("Muito ativo", 1.725),        // trabalho fisicamente exigente (pedreiro, garçom andando 10h, entregador de bike, ajudante de mudanças, etc.)
-        EXTREMELY_ACTIVE("Extremamente ativo", 1.9); // trabalhadores rurais de carga pesada, atletas, militares, pessoas que gastam energia de forma intensa diária.
+        SEDENTARY("Sedentary", 1.2),           // Seated work, minimal movement, very still routine
+        LIGHTLY_ACTIVE("Lightly Active", 1.375), // Seated work but moves throughout the day (walks a lot, shops, takes care of home, uses public transport, etc.)
+        MODERATELY_ACTIVE("Moderately Active", 1.55), // Routine with frequent movement + some recreational physical activities (e.g., walks daily + long walks, but no structured training)
+        VERY_ACTIVE("Very Active", 1.725),        // Physically demanding work (bricklayer, waiter walking 10h, bike delivery, moving helper, etc.)
+        EXTREMELY_ACTIVE("Extremely Active", 1.9); // Heavy load rural workers, athletes, military, people who spend energy intensively daily
 
         private final String displayName;
         private final double multiplier;
@@ -172,13 +172,13 @@ public class UserProfile {
     }
 
     public enum Goal {
-        LOSE_WEIGHT("Perder Gordura/Manter Massa Magra"),
-        MAINTAIN_WEIGHT("Manter peso"),
-        GAIN_WEIGHT("Ganhar peso");
+        LOSE_WEIGHT("Lose Fat/Maintain Lean Muscle"),
+        MAINTAIN_WEIGHT("Maintain Weight"),
+        GAIN_WEIGHT("Gain Weight");
 
         private final String displayName;
         @Setter
-        private BigDecimal calorieAdjustment; // calorias a adicionar/subtrair do TotalDailyEnergyExpenditure
+        private BigDecimal calorieAdjustment; // Calories to add/subtract from TDEE
 
         Goal(String displayName) {
             this.displayName = displayName;
@@ -210,7 +210,7 @@ public class UserProfile {
     }
 
     /**
-     * Calcula mudança de peso semanal necessária
+     * Calculates required weekly weight change
      */
     public BigDecimal getRecommendedWeeklyWeightChange() {
         if (targetDate == null || currentWeight == null || targetWeight == null) {
@@ -229,11 +229,11 @@ public class UserProfile {
     }
 
     /**
-     * Verifica se o objetivo ainda é viável
+     * Checks if the target date is still viable
      */
     public boolean isTargetDateRealistic() {
         if (targetDate == null || currentWeight == null || targetWeight == null) {
-            return true; // Não pode determinar, assume que é realista
+            return true; // Cannot determine, assumes it is realistic
         }
 
         BigDecimal weeklyChange = getRecommendedWeeklyWeightChange();
@@ -241,7 +241,7 @@ public class UserProfile {
             return true;
         }
 
-        // Considera realista se a mudança semanal for <= 1kg
+        // Considers realistic if weekly change is <= 1kg
         return weeklyChange.abs().compareTo(BigDecimal.valueOf(1.0)) <= 0;
     }
 }
