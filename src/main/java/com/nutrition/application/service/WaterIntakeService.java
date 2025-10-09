@@ -4,7 +4,9 @@ import com.nutrition.application.dto.tracking.DailyWaterSummary;
 import com.nutrition.application.dto.tracking.WaterIntakeRequest;
 import com.nutrition.application.dto.tracking.WaterIntakeResponse;
 import com.nutrition.domain.entity.auth.User;
+import com.nutrition.domain.entity.profile.UserProfile;
 import com.nutrition.domain.entity.tracking.WaterIntake;
+import com.nutrition.infrastructure.repository.UserProfileRepository;
 import com.nutrition.infrastructure.repository.WaterIntakeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,7 @@ import java.util.stream.Collectors;
 public class WaterIntakeService {
 
     private final WaterIntakeRepository waterIntakeRepository;
+    private final UserProfileRepository userProfileRepository;
 
     // Meta diária padrão (pode vir do perfil do usuário futuramente)
     private static final BigDecimal DEFAULT_DAILY_TARGET = new BigDecimal("2000"); // 2L
@@ -64,7 +67,7 @@ public class WaterIntakeService {
         BigDecimal totalIntake = waterIntakeRepository
                 .getTotalIntakeByUserAndDate(user, date);
 
-        BigDecimal target = DEFAULT_DAILY_TARGET; // 2000ml
+        BigDecimal target = getUserDailyWaterTarget(user);
 
         double progressPercentage = totalIntake.divide(target, 4, RoundingMode.HALF_UP)
                 .multiply(new BigDecimal("100"))
@@ -103,7 +106,7 @@ public class WaterIntakeService {
     private DailyWaterSummary getDailySummaryForHistory(User user, LocalDate date) {
         BigDecimal totalIntake = waterIntakeRepository.getTotalIntakeByUserAndDate(user, date);
         int intakeCount = waterIntakeRepository.countByUserAndIntakeDate(user, date);
-        BigDecimal target = DEFAULT_DAILY_TARGET;
+        BigDecimal target = getUserDailyWaterTarget(user);
 
         double progressPercentage = totalIntake.divide(target, 4, RoundingMode.HALF_UP)
                 .multiply(new BigDecimal("100"))
@@ -117,6 +120,17 @@ public class WaterIntakeService {
                 .intakeCount(intakeCount)
                 .intakes(List.of()) // Vazio no histórico
                 .build();
+    }
+
+    /**
+     * Gets the user's daily water intake target from their profile.
+     * Falls back to DEFAULT_DAILY_TARGET if profile doesn't exist or water intake is not set.
+     */
+    private BigDecimal getUserDailyWaterTarget(User user) {
+        return userProfileRepository.findByUser(user)
+                .map(UserProfile::getDailyWaterIntake)
+                .filter(waterIntake -> waterIntake != null && waterIntake.compareTo(BigDecimal.ZERO) > 0)
+                .orElse(DEFAULT_DAILY_TARGET);
     }
 
     @Transactional
