@@ -1,5 +1,6 @@
 package com.nutrition.application.dto.config;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.nutrition.domain.entity.config.ActivityLevelConfig;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,11 +15,17 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class ActivityLevelResponse {
 
+    @JsonProperty("id")
     private Long id;
+    @JsonProperty("code")
     private String code;
+    @JsonProperty("displayName")
     private String displayName;
+    @JsonProperty("description")
     private String description;
+    @JsonProperty("multiplier")
     private BigDecimal multiplier;
+    @JsonProperty("displayOrder")
     private Integer displayOrder;
 
     public static ActivityLevelResponse fromEntity(ActivityLevelConfig entity) {

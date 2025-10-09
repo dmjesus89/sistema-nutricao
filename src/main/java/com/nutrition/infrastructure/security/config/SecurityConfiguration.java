@@ -43,9 +43,12 @@ public class SecurityConfiguration {
                         // Public endpoints
                         .requestMatchers("/api/v1/auth/register").permitAll()
                         .requestMatchers("/api/v1/auth/login").permitAll()
+                        .requestMatchers("/api/v1/auth/logout").permitAll()
                         .requestMatchers("/api/v1/auth/confirm").permitAll()
                         .requestMatchers("/api/v1/auth/forgot-password").permitAll()
                         .requestMatchers("/api/v1/auth/reset-password").permitAll()
+                        .requestMatchers("/api/v1/config/activity-levels").permitAll()
+                        .requestMatchers("/api/v1/config/goals").permitAll()
                         // Admin endpoints
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
