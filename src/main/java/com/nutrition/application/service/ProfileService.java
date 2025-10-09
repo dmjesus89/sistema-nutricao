@@ -13,6 +13,7 @@ import com.nutrition.domain.entity.profile.UserProfile;
 import com.nutrition.domain.entity.profile.WeightHistory;
 import com.nutrition.infrastructure.exception.NotFoundException;
 import com.nutrition.infrastructure.exception.UnprocessableEntityException;
+import com.nutrition.infrastructure.repository.ActivityLevelConfigRepository;
 import com.nutrition.infrastructure.repository.UserProfileRepository;
 import com.nutrition.infrastructure.repository.UserRepository;
 import com.nutrition.infrastructure.repository.WeightHistoryRepository;
@@ -37,6 +38,7 @@ public class ProfileService {
     private final WeightHistoryRepository weightHistoryRepository;
     private final TotalDailyEnergyExpenditureCalculationService calculationService;
     private final ProfileValidationService validationService;
+    private final ActivityLevelConfigRepository activityLevelConfigRepository;
 
     @Transactional
     public ProfileResponse createProfile(User currentUser, CreateProfileRequest request) {
@@ -572,12 +574,18 @@ public class ProfileService {
                 throw new UnprocessableEntityException("Perfil não encontrado");
             }
 
+            // Get activity multiplier from database configuration
+            BigDecimal activityMultiplier = activityLevelConfigRepository
+                    .findByCodeAndActive(profile.getActivityLevel().name(), true)
+                    .map(config -> config.getMultiplier())
+                    .orElse(BigDecimal.valueOf(profile.getActivityLevel().getMultiplier())); // Fallback to enum value
+
             TotalDailyEnergyExpenditureCalculationResponse response = TotalDailyEnergyExpenditureCalculationResponse.builder()
                     .basalMetabolicRate(profile.getBasalMetabolicRate())
                     .totalDailyEnergyExpenditure(profile.getTotalDailyEnergyExpenditure())
                     .dailyCalorieTarget(profile.getDailyCalorieTarget())
                     .calculationMethod("Mifflin-St Jeor")
-                    .activityMultiplier(profile.getActivityLevel().getMultiplier())
+                    .activityMultiplier(activityMultiplier.doubleValue())
                     .calorieAdjustment(profile.getDailyCalorieTarget().subtract(profile.getTotalDailyEnergyExpenditure()))
                     .dailyWaterIntake(profile.getDailyWaterIntake())
                     .calculatedAt(profile.getUpdatedAt() != null ?

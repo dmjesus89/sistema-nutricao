@@ -158,10 +158,10 @@ public class ProfileValidationService {
                         BigDecimal.valueOf(weeksToTarget), 3, BigDecimal.ROUND_HALF_UP);
 
                 // Validar se o objetivo é realista para a data
-                UserProfile.Goal goal = profile.getGoal();
-                goal.setCalorieAdjustment(profile.getDailyCalorieTarget().subtract(profile.getTotalDailyEnergyExpenditure()));
-                if (goal != null) {
-                    int dailyCalorieAdjustment = Math.abs(goal.getCalorieAdjustment().intValue());
+                // Calculate calorie adjustment from profile's TDEE and daily calorie target
+                if (profile.getDailyCalorieTarget() != null && profile.getTotalDailyEnergyExpenditure() != null) {
+                    BigDecimal calorieAdjustment = profile.getTotalDailyEnergyExpenditure().subtract(profile.getDailyCalorieTarget());
+                    int dailyCalorieAdjustment = Math.abs(calorieAdjustment.intValue());
                     int weeklyCalorieDeficit = dailyCalorieAdjustment * 7;
 
                     // 1kg ≈ 7700 kcal
@@ -178,11 +178,14 @@ public class ProfileValidationService {
 
 
         // Validar taxa de perda/ganho semanal segura
-        UserProfile.Goal goal = profile.getGoal();
-        int weeklyCalorieDeficit = Math.abs(goal.getCalorieAdjustment().intValue()) * 7;
+        // Calculate calorie adjustment from profile's TDEE and daily calorie target
+        if (profile.getDailyCalorieTarget() != null && profile.getTotalDailyEnergyExpenditure() != null) {
+            BigDecimal calorieAdjustment = profile.getTotalDailyEnergyExpenditure().subtract(profile.getDailyCalorieTarget());
+            int weeklyCalorieDeficit = Math.abs(calorieAdjustment.intValue()) * 7;
 
-        if (weeklyCalorieDeficit > 3500) { // Mais de 1 kg por semana
-            warnings.add("Taxa de perda/ganho de peso muito alta. Recomendado máximo 0.5-1kg por semana.");
+            if (weeklyCalorieDeficit > 3500) { // Mais de 1 kg por semana
+                warnings.add("Taxa de perda/ganho de peso muito alta. Recomendado máximo 0.5-1kg por semana.");
+            }
         }
 
         return new ValidationResult(errors.isEmpty(), errors, warnings);

@@ -1,6 +1,11 @@
 package com.nutrition.application.service;
 
+import com.nutrition.domain.entity.config.ActivityLevelConfig;
+import com.nutrition.domain.entity.config.GoalConfig;
 import com.nutrition.domain.entity.profile.UserProfile;
+import com.nutrition.infrastructure.repository.ActivityLevelConfigRepository;
+import com.nutrition.infrastructure.repository.GoalConfigRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +16,11 @@ import java.time.temporal.ChronoUnit;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class TotalDailyEnergyExpenditureCalculationService {
+
+    private final ActivityLevelConfigRepository activityLevelConfigRepository;
+    private final GoalConfigRepository goalConfigRepository;
 
     /**
      * Calcula a Taxa Metabólica Basal (BasalMetabolicRate) usando a fórmula de Mifflin-St Jeor
@@ -54,14 +63,27 @@ public class TotalDailyEnergyExpenditureCalculationService {
      */
     public BigDecimal calculateTotalDailyEnergyExpenditure(UserProfile profile) {
         BigDecimal basalMetabolicRate = calculateBasalMetabolicRate(profile);
-        double activityMultiplier = profile.getActivityLevel().getMultiplier();
 
-        BigDecimal totalDailyEnergyExpenditure = basalMetabolicRate.multiply(BigDecimal.valueOf(activityMultiplier));
+        // Fetch activity multiplier from database configuration
+        BigDecimal activityMultiplier = getActivityMultiplierFromConfig(profile.getActivityLevel());
+
+        BigDecimal totalDailyEnergyExpenditure = basalMetabolicRate.multiply(activityMultiplier);
 
         log.info("TotalDailyEnergyExpenditure calculated for user {}: {} kcal/day (BasalMetabolicRate: {}, Activity: {})",
                 profile.getUser().getId(), totalDailyEnergyExpenditure, basalMetabolicRate, activityMultiplier);
 
         return totalDailyEnergyExpenditure.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Obtém o multiplicador de atividade da configuração do banco de dados
+     */
+    private BigDecimal getActivityMultiplierFromConfig(UserProfile.ActivityLevel activityLevel) {
+        ActivityLevelConfig config = activityLevelConfigRepository
+                .findByCodeAndActive(activityLevel.name(), true)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Activity level configuration not found for: " + activityLevel.name()));
+        return config.getMultiplier();
     }
 
     /**
@@ -155,7 +177,13 @@ public class TotalDailyEnergyExpenditureCalculationService {
         }
 
         BigDecimal weightDifference = profile.getTargetWeight().subtract(profile.getCurrentWeight()).abs();
-        int calorieAdjustment = Math.abs(profile.getGoal().getCalorieAdjustment().intValue());
+
+        // Get calorie adjustment from the profile's calculated value, not from the goal enum
+        BigDecimal calorieAdjustmentDecimal = profile.getDailyCalorieTarget() != null && profile.getTotalDailyEnergyExpenditure() != null
+                ? profile.getTotalDailyEnergyExpenditure().subtract(profile.getDailyCalorieTarget()).abs()
+                : BigDecimal.ZERO;
+
+        int calorieAdjustment = calorieAdjustmentDecimal.intValue();
 
         if (calorieAdjustment == 0) {
             return null; // Mantendo peso, não há tempo estimado
@@ -167,6 +195,16 @@ public class TotalDailyEnergyExpenditureCalculationService {
         BigDecimal weeksDecimal = totalCalories.divide(BigDecimal.valueOf(calorieAdjustment * 7), 1, RoundingMode.HALF_UP);
 
         return weeksDecimal.intValue();
+    }
+
+    /**
+     * Obtém o ajuste calórico da configuração do banco de dados
+     */
+    private GoalConfig getGoalConfigFromDatabase(UserProfile.Goal goal) {
+        return goalConfigRepository
+                .findByCodeAndActive(goal.name(), true)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Goal configuration not found for: " + goal.name()));
     }
 
     /**
