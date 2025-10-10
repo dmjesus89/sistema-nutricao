@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -128,7 +129,7 @@ public class MealReminderService {
 
         for (MealFood mealFood : meal.getFoods()) {
             String foodName = mealFood.getFood().getName();
-            double quantity = mealFood.getQuantity();
+            BigDecimal quantity = mealFood.getQuantity();
 
             details.append(String.format("<li>%s - %.0fg</li>", foodName, quantity));
         }

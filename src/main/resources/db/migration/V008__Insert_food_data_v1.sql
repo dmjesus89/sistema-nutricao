@@ -91,10 +91,10 @@ VALUES ('Espinafre', 'Espinafre cru fresco', 'VEGETABLES', 23, 3.6, 2.9, 0.4, 2.
 -- LEGUMES (Beans and Legumes)
 INSERT INTO foods (name, description, category, calories_per_100g, carbs_per_100g, protein_per_100g, fat_per_100g,
                    fiber_per_100g, sugar_per_100g, sodium_per_100g, serving_size, serving_description, source, verified, quantity_equivalence)
-VALUES ('Feijão Preto', 'Feijão preto cozido', 'LEGUMES', 77, 14.0, 4.5, 0.5, 8.4, 0.3, 2, 100, '1 concha', 'TACO', true, NULL),
+VALUES ('Feijão Preto', 'Feijão preto cozido', 'VEGETABLES', 77, 14.0, 4.5, 0.5, 8.4, 0.3, 2, 100, '1 concha', 'TACO', true, NULL),
        ('Feijão Fradinho', 'Feijão fradinho cozido', 'VEGETABLES', 108, 19.3, 7.5, 0.6, 9.6, 1.0, 3, 100, '1 concha',
         'TACO', true, NULL),
-       ('Feijão Branco', 'Feijão branco cozido', 'LEGUMES', 114, 20.0, 7.0, 0.4, 6.3, 0.6, 2, 100, '1 concha', 'USDA', true, NULL),
+       ('Feijão Branco', 'Feijão branco cozido', 'VEGETABLES', 114, 20.0, 7.0, 0.4, 6.3, 0.6, 2, 100, '1 concha', 'USDA', true, NULL),
        ('Feijão Roxo', 'Feijão roxo cozido', 'VEGETABLES', 127, 22.8, 8.7, 0.5, 8.7, 0.3, 1, 100, '1 concha', 'USDA',
         true, NULL),
        ('Lentilha', 'Lentilha cozida', 'VEGETABLES', 116, 20.1, 9.0, 0.4, 7.9, 1.8, 2, 100, '1/2 xícara', 'TACO', true, NULL),
@@ -102,7 +102,7 @@ VALUES ('Feijão Preto', 'Feijão preto cozido', 'LEGUMES', 77, 14.0, 4.5, 0.5, 
         'TACO', true, NULL),
        ('Ervilha', 'Ervilha fresca cozida', 'VEGETABLES', 81, 14.5, 5.4, 0.4, 5.7, 5.7, 5, 100, '1/2 xícara', 'TACO',
         true, NULL),
-       ('Soja', 'Grão de soja cozido', 'LEGUMES', 141, 11.0, 12.3, 6.4, 6.0, 3.0, 2, 100, '1/2 xícara', 'TACO', true, NULL),
+       ('Soja', 'Grão de soja cozido', 'VEGETABLES', 141, 11.0, 12.3, 6.4, 6.0, 3.0, 2, 100, '1/2 xícara', 'TACO', true, NULL),
        ('Salada Mista', 'Mix de folhas verdes', 'VEGETABLES', 15, 2.9, 1.4, 0.1, 1.3, 1.2, 28, 100, '2 xícaras', 'TACO', true, NULL),
        ('Legumes Cozidos', 'Mix de legumes cozidos no vapor', 'VEGETABLES', 35, 7.5, 1.8, 0.3, 2.5, 3.2, 15, 100, '1 xícara', 'TACO', true, NULL);
 
