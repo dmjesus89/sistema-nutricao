@@ -79,6 +79,24 @@ public class EmailService {
         }
     }
 
+    @Async
+    public CompletableFuture<Void> sendMealReminderEmail(String to, String firstName, String mealName, String mealTime, String mealDetails) {
+        try {
+            String subject = "Lembrete de Refeição - " + mealName;
+            String mealsUrl = frontEndUrl + "/meals";
+            String htmlContent = buildMealReminderEmailTemplate(firstName, mealName, mealTime, mealDetails, mealsUrl);
+
+            sendHtmlEmail(to, subject, htmlContent);
+            log.info("Meal reminder email sent successfully to: {} for meal: {}", to, mealName);
+
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            log.error("Error sending meal reminder email to {}: {}", to, e.getMessage());
+            // Don't throw exception for reminder email as it's not critical
+            return CompletableFuture.completedFuture(null);
+        }
+    }
+
     private void sendHtmlEmail(String to, String subject, String htmlContent) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
@@ -172,6 +190,41 @@ public class EmailService {
                 </body>
                 </html>
                 """, firstName, loginUrl);
+    }
+
+    private String buildMealReminderEmailTemplate(String firstName, String mealName, String mealTime, String mealDetails, String mealsUrl) {
+        return String.format("""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Lembrete de Refeição</title>
+                </head>
+                <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
+                    <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h1 style="color: #FF9800; margin: 0;">🍽️ Hora da Refeição!</h1>
+                        </div>
+                        <p>Olá <strong>%s</strong>,</p>
+                        <p>Este é um lembrete de que está na hora da sua refeição:</p>
+                        <div style="background-color: #fff3e0; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #FF9800;">
+                            <h2 style="margin: 0 0 10px 0; color: #F57C00;">%s</h2>
+                            <p style="margin: 5px 0; color: #666;"><strong>Horário:</strong> %s</p>
+                            <div style="margin-top: 10px;">
+                                %s
+                            </div>
+                        </div>
+                        <p>Não se esqueça de marcar esta refeição como consumida após se alimentar!</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="%s" style="background-color: #FF9800; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Ver Minhas Refeições</a>
+                        </div>
+                        <p style="margin-top: 30px; color: #666; font-size: 12px; text-align: center;">
+                            💡 Dica: Manter uma alimentação regular ajuda a alcançar seus objetivos de saúde!
+                        </p>
+                    </div>
+                </body>
+                </html>
+                """, firstName, mealName, mealTime, mealDetails, mealsUrl);
     }
 
 }

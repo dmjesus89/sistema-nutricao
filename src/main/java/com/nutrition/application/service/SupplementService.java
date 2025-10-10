@@ -103,8 +103,8 @@ public class SupplementService {
                 // Advanced filtered search - FIX: passing all required parameters
                 supplements = supplementRepository.findByAdvancedFilters(
                         null,  // name
-                        category != null ? parseSupplementCategory(category) : null,  // category
-                        form != null ? parseSupplementForm(form) : null,  // form
+                        category,  // category (String)
+                        form,  // form (String)
                         brand,  // brand
                         null,   // ingredient
                         null,   // servingUnit
@@ -143,11 +143,11 @@ public class SupplementService {
 
             Page<Supplement> supplements = supplementRepository.findByAdvancedFilters(
                     name,
-                    category != null ? parseSupplementCategory(category) : null,
-                    form != null ? parseSupplementForm(form) : null,
+                    category,  // category (String)
+                    form,  // form (String)
                     brand,
                     ingredient,
-                    servingUnit != null ? parseServingUnit(servingUnit) : null,
+                    servingUnit,  // servingUnit (String)
                     verified,
                     hasNutritionalValue,
                     pageable

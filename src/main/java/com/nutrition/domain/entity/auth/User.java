@@ -70,6 +70,13 @@ public class User implements UserDetails {
     @Builder.Default
     private Boolean enabled = false; // Only enabled after email confirmation
 
+    @Column(name = "welcome_email_sent", nullable = false)
+    @Builder.Default
+    private Boolean welcomeEmailSent = false;
+
+    @Column(name = "welcome_email_sent_at")
+    private LocalDateTime welcomeEmailSentAt;
+
     @Column(name = "created_at", nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

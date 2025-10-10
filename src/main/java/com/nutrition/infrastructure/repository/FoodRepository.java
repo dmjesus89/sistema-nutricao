@@ -74,24 +74,23 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
 
     /**
      * Advanced search with all possible filters
+     * Uses accent-insensitive search for name (users can search with or without accents)
      */
-    @Query("SELECT f FROM Food f WHERE f.active = true AND " +
-            "(:name IS NULL OR LOWER(f.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
-            "(:category IS NULL OR f.category = :category) AND " +
-            //"(:brand IS NULL OR LOWER(f.brand) LIKE LOWER(CONCAT('%', :brand, '%'))) AND " +
-            "(:minCalories IS NULL OR f.caloriesPer100g >= :minCalories) AND " +
-            "(:maxCalories IS NULL OR f.caloriesPer100g <= :maxCalories) AND " +
-            "(:minProtein IS NULL OR f.proteinPer100g >= :minProtein) AND " +
-            "(:maxCarbs IS NULL OR f.carbsPer100g <= :maxCarbs) AND " +
-            "(:maxFat IS NULL OR f.fatPer100g <= :maxFat) AND " +
-            "(:minFiber IS NULL OR f.fiberPer100g IS NULL OR f.fiberPer100g >= :minFiber) AND " +
-            "(:maxSodium IS NULL OR f.sodiumPer100g IS NULL OR f.sodiumPer100g <= :maxSodium) AND " +
+    @Query(value = "SELECT f.* FROM foods f WHERE f.active = true AND " +
+            "(:name IS NULL OR remove_accents(LOWER(f.name)) LIKE remove_accents(LOWER(CONCAT('%', :name, '%')))) AND " +
+            "(:category IS NULL OR f.category = CAST(:category AS text)) AND " +
+            "(:minCalories IS NULL OR f.calories_per_100g >= :minCalories) AND " +
+            "(:maxCalories IS NULL OR f.calories_per_100g <= :maxCalories) AND " +
+            "(:minProtein IS NULL OR f.protein_per_100g >= :minProtein) AND " +
+            "(:maxCarbs IS NULL OR f.carbs_per_100g <= :maxCarbs) AND " +
+            "(:maxFat IS NULL OR f.fat_per_100g <= :maxFat) AND " +
+            "(:minFiber IS NULL OR f.fiber_per_100g IS NULL OR f.fiber_per_100g >= :minFiber) AND " +
+            "(:maxSodium IS NULL OR f.sodium_per_100g IS NULL OR f.sodium_per_100g <= :maxSodium) AND " +
             "(:verified IS NULL OR f.verified = :verified) AND " +
             "(:barcode IS NULL OR f.barcode = :barcode) " +
-            "ORDER BY f.name ASC")
+            "ORDER BY f.name ASC", nativeQuery = true)
     Page<Food> findByAdvancedFilters(@Param("name") String name,
-                                     @Param("category") Food.FoodCategory category,
-                                     // @Param("brand") String brand,
+                                     @Param("category") String category,
                                      @Param("minCalories") BigDecimal minCalories,
                                      @Param("maxCalories") BigDecimal maxCalories,
                                      @Param("minProtein") BigDecimal minProtein,

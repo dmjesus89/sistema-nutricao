@@ -171,8 +171,7 @@ public class FoodService {
             if (hasSearchCriteria(searchRequest)) {
                 foods = foodRepository.findByAdvancedFilters(
                         searchRequest.getName(),
-                        searchRequest.getCategory() != null ? parseFoodCategory(searchRequest.getCategory()) : null,
-                     //   searchRequest.getBrand(),
+                        searchRequest.getCategory() != null ? searchRequest.getCategory() : null,
                         searchRequest.getMinCalories(),
                         searchRequest.getMaxCalories(),
                         searchRequest.getMinProtein(),

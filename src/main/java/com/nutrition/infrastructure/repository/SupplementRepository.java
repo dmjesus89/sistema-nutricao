@@ -44,22 +44,26 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
 
     /**
      * Search supplements by text in name, description, brand, or main ingredient
+     * Uses accent-insensitive search (users can search with or without accents)
      */
-    @Query("SELECT s FROM Supplement s WHERE s.active = true AND " +
-            "(LOWER(s.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(s.description) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(s.brand) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(s.mainIngredient) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    @Query(value = "SELECT s.* FROM supplements s WHERE s.active = true AND " +
+            "(remove_accents(LOWER(s.name)) LIKE remove_accents(LOWER(CONCAT('%', :searchTerm, '%'))) OR " +
+            "remove_accents(LOWER(s.description)) LIKE remove_accents(LOWER(CONCAT('%', :searchTerm, '%'))) OR " +
+            "remove_accents(LOWER(s.brand)) LIKE remove_accents(LOWER(CONCAT('%', :searchTerm, '%'))) OR " +
+            "remove_accents(LOWER(s.main_ingredient)) LIKE remove_accents(LOWER(CONCAT('%', :searchTerm, '%'))))",
+            nativeQuery = true)
     Page<Supplement> searchByNameDescriptionBrandOrIngredient(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     /**
      * Search supplements with multiple text criteria
+     * Uses accent-insensitive search (users can search with or without accents)
      */
-    @Query("SELECT s FROM Supplement s WHERE s.active = true AND " +
-            "(:name IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
-            "(:description IS NULL OR LOWER(s.description) LIKE LOWER(CONCAT('%', :description, '%'))) AND " +
-            "(:brand IS NULL OR LOWER(s.brand) LIKE LOWER(CONCAT('%', :brand, '%'))) AND " +
-            "(:ingredient IS NULL OR LOWER(s.mainIngredient) LIKE LOWER(CONCAT('%', :ingredient, '%')))")
+    @Query(value = "SELECT s.* FROM supplements s WHERE s.active = true AND " +
+            "(:name IS NULL OR remove_accents(LOWER(s.name)) LIKE remove_accents(LOWER(CONCAT('%', :name, '%')))) AND " +
+            "(:description IS NULL OR remove_accents(LOWER(s.description)) LIKE remove_accents(LOWER(CONCAT('%', :description, '%')))) AND " +
+            "(:brand IS NULL OR remove_accents(LOWER(s.brand)) LIKE remove_accents(LOWER(CONCAT('%', :brand, '%')))) AND " +
+            "(:ingredient IS NULL OR remove_accents(LOWER(s.main_ingredient)) LIKE remove_accents(LOWER(CONCAT('%', :ingredient, '%'))))",
+            nativeQuery = true)
     Page<Supplement> searchByMultipleTextCriteria(@Param("name") String name,
                                                   @Param("description") String description,
                                                   @Param("brand") String brand,
@@ -274,25 +278,26 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
 
     /**
      * Advanced search with all possible filters
+     * Uses accent-insensitive search for name, brand, and ingredient (users can search with or without accents)
      */
-    @Query("SELECT s FROM Supplement s WHERE s.active = true AND " +
-            "(:name IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
-            "(:category IS NULL OR s.category = :category) AND " +
-            "(:form IS NULL OR s.form = :form) AND " +
-            "(:brand IS NULL OR LOWER(s.brand) LIKE LOWER(CONCAT('%', :brand, '%'))) AND " +
-            "(:ingredient IS NULL OR LOWER(s.mainIngredient) LIKE LOWER(CONCAT('%', :ingredient, '%'))) AND " +
-            "(:servingUnit IS NULL OR s.servingUnit = :servingUnit) AND " +
+    @Query(value = "SELECT s.* FROM supplements s WHERE s.active = true AND " +
+            "(:name IS NULL OR remove_accents(LOWER(s.name)) LIKE remove_accents(LOWER(CONCAT('%', :name, '%')))) AND " +
+            "(:category IS NULL OR s.category = CAST(:category AS text)) AND " +
+            "(:form IS NULL OR s.form = CAST(:form AS text)) AND " +
+            "(:brand IS NULL OR remove_accents(LOWER(s.brand)) LIKE remove_accents(LOWER(CONCAT('%', :brand, '%')))) AND " +
+            "(:ingredient IS NULL OR remove_accents(LOWER(s.main_ingredient)) LIKE remove_accents(LOWER(CONCAT('%', :ingredient, '%')))) AND " +
+            "(:servingUnit IS NULL OR s.serving_unit = CAST(:servingUnit AS text)) AND " +
             "(:verified IS NULL OR s.verified = :verified) AND " +
             "(:hasNutritionalValue IS NULL OR " +
             "(:hasNutritionalValue = false) OR " +
-            "(:hasNutritionalValue = true AND s.caloriesPerServing IS NOT NULL AND s.caloriesPerServing > 0)) " +
-            "ORDER BY s.name ASC")
+            "(:hasNutritionalValue = true AND s.calories_per_serving IS NOT NULL AND s.calories_per_serving > 0)) " +
+            "ORDER BY s.name ASC", nativeQuery = true)
     Page<Supplement> findByAdvancedFilters(@Param("name") String name,
-                                           @Param("category") Supplement.SupplementCategory category,
-                                           @Param("form") Supplement.SupplementForm form,
+                                           @Param("category") String category,
+                                           @Param("form") String form,
                                            @Param("brand") String brand,
                                            @Param("ingredient") String ingredient,
-                                           @Param("servingUnit") Supplement.ServingUnit servingUnit,
+                                           @Param("servingUnit") String servingUnit,
                                            @Param("verified") Boolean verified,
                                            @Param("hasNutritionalValue") Boolean hasNutritionalValue,
                                            Pageable pageable);
