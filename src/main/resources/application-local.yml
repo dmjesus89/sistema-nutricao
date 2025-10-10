@@ -9,9 +9,9 @@ spring:
     name: sistema-nutricao
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/nutricao_db
-    username: postgres
-    password: postgres
+    url: ${DATASOURCE_URL}
+    username: ${DATASOURCE_USERNAME}
+    password: ${DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -50,10 +50,10 @@ spring:
         jwt:
           issuer-uri: http://localhost:8080
 
-# Custom Application Properties
+
 app:
   frontend:
-    url: https://v0-sistema-nutricao-auth.vercel.app/
+    url: ${FRONTEND_URL}
 
   jwt:
     secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
