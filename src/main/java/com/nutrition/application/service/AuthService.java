@@ -65,7 +65,6 @@ public class AuthService {
             EmailConfirmationToken confirmationToken = EmailConfirmationToken.builder().token(token).user(user).expiresAt(LocalDateTime.now().plusSeconds(confirmationTokenExpiration / 1000)).build();
             confirmationTokenRepository.save(confirmationToken);
 
-            //TODO deve ser assync
             emailService.sendConfirmationEmail(user.getEmail(), user.getFirstName(), token);
             log.info("User registered successfully: {}", user.getEmail());
         } catch (Exception e) {
@@ -99,7 +98,6 @@ public class AuthService {
             user.setEnabled(true);
             userRepository.save(user);
 
-            //TODO deve ser assync
             emailService.sendWelcomeEmail(user.getEmail(), user.getFirstName());
 
             log.info("Email confirmed successfully for user: {}", user.getEmail());
@@ -151,7 +149,6 @@ public class AuthService {
             PasswordResetToken resetToken = PasswordResetToken.builder().token(token).user(user).expiresAt(LocalDateTime.now().plusSeconds(resetPasswordTokenExpiration / 1000)).build();
             passwordResetTokenRepository.save(resetToken);
 
-            //TODO tem que ser assync
             emailService.sendPasswordResetEmail(user.getEmail(), user.getFirstName(), token);
             log.info("Password reset requested for user: {}", user.getEmail());
         } catch (Exception e) {

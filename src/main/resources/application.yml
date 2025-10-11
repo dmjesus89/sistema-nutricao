@@ -65,7 +65,7 @@ app:
     refresh-expiration: 604800000 # 7 days
 
   email:
-    from: ${EMAIL_FROM:dmjesus89@gmail.com}
+    from: ${EMAIL_FROM:onboarding@resend.dev}
     confirmation:
       expiration: 86400000 # 24 hours
     reset-password:
