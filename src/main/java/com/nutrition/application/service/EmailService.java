@@ -129,7 +129,54 @@ public class EmailService {
         }
     }
 
+    // Synchronous methods for email queue processing
+    public boolean sendConfirmationEmailSync(String to, String firstName, String confirmationToken) {
+        try {
+            String subject = "Confirme sua conta - Sistema de Nutrição";
+            String confirmationUrl = frontEndUrl + "/auth/email-confirmed?token=" + confirmationToken;
+            String htmlContent = buildConfirmationEmailTemplate(firstName, confirmationUrl);
+
+            return sendEmailSync(to, subject, htmlContent);
+        } catch (Exception e) {
+            log.error("Error sending confirmation email to {}: {}", to, e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean sendWelcomeEmailSync(String to, String firstName) {
+        try {
+            String subject = "Bem-vindo ao Sistema de Nutrição!";
+            String loginUrl = frontEndUrl + "/auth/login";
+            String htmlContent = buildWelcomeEmailTemplate(firstName, loginUrl);
+
+            return sendEmailSync(to, subject, htmlContent);
+        } catch (Exception e) {
+            log.error("Error sending welcome email to {}: {}", to, e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean sendPasswordResetEmailSync(String to, String firstName, String resetToken) {
+        try {
+            String subject = "Redefinição de senha - Sistema de Nutrição";
+            String passwordResetConfirmationUrl = frontEndUrl + "/auth/password-reset-confirmed?token=" + resetToken;
+            String htmlContent = buildPasswordResetEmailTemplate(firstName, passwordResetConfirmationUrl);
+
+            return sendEmailSync(to, subject, htmlContent);
+        } catch (Exception e) {
+            log.error("Error sending password reset email to {}: {}", to, e.getMessage());
+            return false;
+        }
+    }
+
     private void sendEmail(String to, String subject, String htmlContent) {
+        boolean success = sendEmailSync(to, subject, htmlContent);
+        if (!success) {
+            throw new RuntimeException("Failed to send email");
+        }
+    }
+
+    private boolean sendEmailSync(String to, String subject, String htmlContent) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Authorization", "Bearer " + resendApiKey);
@@ -146,13 +193,15 @@ public class EmailService {
             ResponseEntity<String> response = restTemplate.postForEntity(RESEND_URL, request, String.class);
 
             if (!response.getStatusCode().is2xxSuccessful()) {
-                throw new RuntimeException("Failed to send email: " + response.getStatusCode());
+                log.error("Failed to send email: {}", response.getStatusCode());
+                return false;
             }
 
             log.debug("Email sent successfully via Resend: {}", response.getBody());
+            return true;
         } catch (Exception e) {
             log.error("Error calling Resend API: {}", e.getMessage());
-            throw new RuntimeException("Failed to send email via Resend", e);
+            return false;
         }
     }
 

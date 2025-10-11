@@ -8,6 +8,7 @@ import com.nutrition.application.dto.auth.RegisterRequest;
 import com.nutrition.application.dto.auth.ResetPasswordRequest;
 import com.nutrition.application.dto.auth.UserResponse;
 import com.nutrition.domain.entity.auth.EmailConfirmationToken;
+import com.nutrition.domain.entity.auth.EmailQueue;
 import com.nutrition.domain.entity.auth.PasswordResetToken;
 import com.nutrition.domain.entity.auth.RefreshToken;
 import com.nutrition.domain.entity.auth.User;
@@ -43,6 +44,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+    private final EmailQueueService emailQueueService;
 
     @Value("${app.email.confirmation.expiration}")
     private Long confirmationTokenExpiration;
@@ -65,7 +67,14 @@ public class AuthService {
             EmailConfirmationToken confirmationToken = EmailConfirmationToken.builder().token(token).user(user).expiresAt(LocalDateTime.now().plusSeconds(confirmationTokenExpiration / 1000)).build();
             confirmationTokenRepository.save(confirmationToken);
 
-            emailService.sendConfirmationEmail(user.getEmail(), user.getFirstName(), token);
+            // Queue confirmation email instead of sending directly
+            emailQueueService.queueEmail(
+                EmailQueue.EmailType.CONFIRMATION,
+                user.getEmail(),
+                user.getFirstName(),
+                token,
+                null
+            );
             log.info("User registered successfully: {}", user.getEmail());
         } catch (Exception e) {
             log.error("Error registering user: {}", e.getMessage());
@@ -98,7 +107,14 @@ public class AuthService {
             user.setEnabled(true);
             userRepository.save(user);
 
-            emailService.sendWelcomeEmail(user.getEmail(), user.getFirstName());
+            // Queue welcome email instead of sending directly
+            emailQueueService.queueEmail(
+                EmailQueue.EmailType.WELCOME,
+                user.getEmail(),
+                user.getFirstName(),
+                null,
+                null
+            );
 
             log.info("Email confirmed successfully for user: {}", user.getEmail());
         } catch (Exception e) {
@@ -149,7 +165,14 @@ public class AuthService {
             PasswordResetToken resetToken = PasswordResetToken.builder().token(token).user(user).expiresAt(LocalDateTime.now().plusSeconds(resetPasswordTokenExpiration / 1000)).build();
             passwordResetTokenRepository.save(resetToken);
 
-            emailService.sendPasswordResetEmail(user.getEmail(), user.getFirstName(), token);
+            // Queue password reset email instead of sending directly
+            emailQueueService.queueEmail(
+                EmailQueue.EmailType.PASSWORD_RESET,
+                user.getEmail(),
+                user.getFirstName(),
+                token,
+                null
+            );
             log.info("Password reset requested for user: {}", user.getEmail());
         } catch (Exception e) {
             log.error("Error processing forgot password: {}", e.getMessage());
