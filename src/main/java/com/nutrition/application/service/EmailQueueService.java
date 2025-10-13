@@ -17,7 +17,7 @@ import java.util.List;
 public class EmailQueueService {
 
     private final EmailQueueRepository emailQueueRepository;
-    private final EmailService emailService;
+    private final GmailEmailService emailService;
 
     /**
      * Queue an email for sending

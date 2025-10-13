@@ -1,6 +1,5 @@
 package com.nutrition.application.service;
 
-
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +19,7 @@ public class GmailEmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${app.email.from}")
+    @Value("${app.gmail.from}")
     private String fromEmail;
 
     @Value("${app.frontend.url}")
@@ -31,7 +30,6 @@ public class GmailEmailService {
         try {
             String subject = "Confirme sua conta - Sistema de Nutrição";
             String confirmationUrl = frontEndUrl + "/auth/email-confirmed?token=" + confirmationToken;
-
             String htmlContent = buildConfirmationEmailTemplate(firstName, confirmationUrl);
 
             sendHtmlEmail(to, subject, htmlContent);
@@ -48,7 +46,7 @@ public class GmailEmailService {
     public CompletableFuture<Void> sendPasswordResetEmail(String to, String firstName, String resetToken) {
         try {
             String subject = "Redefinição de senha - Sistema de Nutrição";
-            String passwordResetConfirmationUrl  = frontEndUrl + "/auth/password-reset-confirmed?token=" + resetToken;
+            String passwordResetConfirmationUrl = frontEndUrl + "/auth/password-reset-confirmed?token=" + resetToken;
             String htmlContent = buildPasswordResetEmailTemplate(firstName, passwordResetConfirmationUrl);
 
             sendHtmlEmail(to, subject, htmlContent);
@@ -65,8 +63,8 @@ public class GmailEmailService {
     public CompletableFuture<Void> sendWelcomeEmail(String to, String firstName) {
         try {
             String subject = "Bem-vindo ao Sistema de Nutrição!";
-            String loginUrl  = frontEndUrl + "/auth/login";
-            String htmlContent = buildWelcomeEmailTemplate(firstName,loginUrl);
+            String loginUrl = frontEndUrl + "/auth/login";
+            String htmlContent = buildWelcomeEmailTemplate(firstName, loginUrl);
 
             sendHtmlEmail(to, subject, htmlContent);
             log.info("Welcome email sent successfully to: {}", to);
@@ -74,7 +72,6 @@ public class GmailEmailService {
             return CompletableFuture.completedFuture(null);
         } catch (Exception e) {
             log.error("Error sending welcome email to {}: {}", to, e.getMessage());
-            // Don't throw exception for welcome email as it's not critical
             return CompletableFuture.completedFuture(null);
         }
     }
@@ -92,8 +89,87 @@ public class GmailEmailService {
             return CompletableFuture.completedFuture(null);
         } catch (Exception e) {
             log.error("Error sending meal reminder email to {}: {}", to, e.getMessage());
-            // Don't throw exception for reminder email as it's not critical
             return CompletableFuture.completedFuture(null);
+        }
+    }
+
+    @Async
+    public CompletableFuture<Void> sendMealConsumptionEmail(String to, String firstName, String mealName) {
+        try {
+            String subject = "Refeição Consumida - " + mealName;
+            String mealsUrl = frontEndUrl + "/meals";
+            String htmlContent = buildMealConsumptionEmailTemplate(firstName, mealName, mealsUrl);
+
+            sendHtmlEmail(to, subject, htmlContent);
+            log.info("Meal consumption email sent successfully to: {} for meal: {}", to, mealName);
+
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            log.error("Error sending meal consumption email to {}: {}", to, e.getMessage());
+            return CompletableFuture.completedFuture(null);
+        }
+    }
+
+    @Async
+    public CompletableFuture<Void> sendWeeklySummaryEmail(String to, String firstName, int mealsConsumed, String totalCalories) {
+        try {
+            String subject = "Resumo Semanal de Nutrição";
+            String dashboardUrl = frontEndUrl + "/dashboard";
+            String htmlContent = buildWeeklySummaryEmailTemplate(firstName, mealsConsumed, totalCalories, dashboardUrl);
+
+            sendHtmlEmail(to, subject, htmlContent);
+            log.info("Weekly summary email sent successfully to: {}", to);
+
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            log.error("Error sending weekly summary email to {}: {}", to, e.getMessage());
+            return CompletableFuture.completedFuture(null);
+        }
+    }
+
+    // Synchronous methods for email queue processing
+    public boolean sendConfirmationEmailSync(String to, String firstName, String confirmationToken) {
+        try {
+            String subject = "Confirme sua conta - Sistema de Nutrição";
+            String confirmationUrl = frontEndUrl + "/auth/email-confirmed?token=" + confirmationToken;
+            String htmlContent = buildConfirmationEmailTemplate(firstName, confirmationUrl);
+
+            sendHtmlEmail(to, subject, htmlContent);
+            log.info("Confirmation email sent successfully (sync) to: {}", to);
+            return true;
+        } catch (Exception e) {
+            log.error("Error sending confirmation email (sync) to {}: {}", to, e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean sendWelcomeEmailSync(String to, String firstName) {
+        try {
+            String subject = "Bem-vindo ao Sistema de Nutrição!";
+            String loginUrl = frontEndUrl + "/auth/login";
+            String htmlContent = buildWelcomeEmailTemplate(firstName, loginUrl);
+
+            sendHtmlEmail(to, subject, htmlContent);
+            log.info("Welcome email sent successfully (sync) to: {}", to);
+            return true;
+        } catch (Exception e) {
+            log.error("Error sending welcome email (sync) to {}: {}", to, e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean sendPasswordResetEmailSync(String to, String firstName, String resetToken) {
+        try {
+            String subject = "Redefinição de senha - Sistema de Nutrição";
+            String passwordResetConfirmationUrl = frontEndUrl + "/auth/password-reset-confirmed?token=" + resetToken;
+            String htmlContent = buildPasswordResetEmailTemplate(firstName, passwordResetConfirmationUrl);
+
+            sendHtmlEmail(to, subject, htmlContent);
+            log.info("Password reset email sent successfully (sync) to: {}", to);
+            return true;
+        } catch (Exception e) {
+            log.error("Error sending password reset email (sync) to {}: {}", to, e.getMessage());
+            return false;
         }
     }
 
@@ -227,4 +303,71 @@ public class GmailEmailService {
                 """, firstName, mealName, mealTime, mealDetails, mealsUrl);
     }
 
+    private String buildMealConsumptionEmailTemplate(String firstName, String mealName, String mealsUrl) {
+        return String.format("""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Refeição Consumida</title>
+                </head>
+                <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
+                    <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h1 style="color: #4CAF50; margin: 0;">✅ Refeição Registrada!</h1>
+                        </div>
+                        <p>Olá <strong>%s</strong>,</p>
+                        <p>Você acabou de marcar a refeição <strong>"%s"</strong> como consumida.</p>
+                        <div style="background-color: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+                            <p style="margin: 0; color: #2e7d32;">🎯 Continue assim para manter seus objetivos nutricionais em dia!</p>
+                        </div>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="%s" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Ver Todas as Refeições</a>
+                        </div>
+                        <p style="margin-top: 30px; color: #666; font-size: 12px; text-align: center;">
+                            💪 Cada refeição registrada é um passo em direção aos seus objetivos!
+                        </p>
+                    </div>
+                </body>
+                </html>
+                """, firstName, mealName, mealsUrl);
+    }
+
+    private String buildWeeklySummaryEmailTemplate(String firstName, int mealsConsumed, String totalCalories, String dashboardUrl) {
+        return String.format("""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Resumo Semanal</title>
+                </head>
+                <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
+                    <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h1 style="color: #2196F3; margin: 0;">📊 Resumo Semanal</h1>
+                        </div>
+                        <p>Olá <strong>%s</strong>,</p>
+                        <p>Aqui está o resumo da sua semana:</p>
+                        <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <div style="margin: 15px 0; padding: 10px; background-color: white; border-radius: 4px;">
+                                <p style="margin: 0; color: #666;">🍽️ <strong>Refeições consumidas:</strong></p>
+                                <p style="margin: 5px 0 0 0; font-size: 24px; color: #1976D2; font-weight: bold;">%d</p>
+                            </div>
+                            <div style="margin: 15px 0; padding: 10px; background-color: white; border-radius: 4px;">
+                                <p style="margin: 0; color: #666;">🔥 <strong>Total de calorias:</strong></p>
+                                <p style="margin: 5px 0 0 0; font-size: 24px; color: #1976D2; font-weight: bold;">%s</p>
+                            </div>
+                        </div>
+                        <p style="color: #4CAF50; font-weight: bold; text-align: center;">Continue com o ótimo trabalho! 💪</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="%s" style="background-color: #2196F3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Ver Dashboard</a>
+                        </div>
+                        <p style="margin-top: 30px; color: #666; font-size: 12px; text-align: center;">
+                            📈 Acompanhe seu progresso e mantenha-se motivado!
+                        </p>
+                    </div>
+                </body>
+                </html>
+                """, firstName, mealsConsumed, totalCalories, dashboardUrl);
+    }
 }

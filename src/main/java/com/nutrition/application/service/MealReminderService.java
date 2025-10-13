@@ -25,7 +25,7 @@ public class MealReminderService {
 
     private final MealRepository mealRepository;
     private final UserRepository userRepository;
-    private final EmailService emailService;
+    private final GmailEmailService emailService;
 
     /**
      * Scheduled task that runs every 5 minutes to check for meal reminders

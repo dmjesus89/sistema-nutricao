@@ -43,7 +43,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final EmailService emailService;
+    private final GmailEmailService emailService;
     private final EmailQueueService emailQueueService;
 
     @Value("${app.email.confirmation.expiration}")
