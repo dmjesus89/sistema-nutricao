@@ -66,12 +66,13 @@ app:
 
   email:
     from: onboarding@resend.dev
-  gmail:
-    from: dmjesus89@gmail.com
     confirmation:
       expiration: 86400000 # 24 hours
     reset-password:
       expiration: 3600000 # 1 hour
+
+  gmail:
+    from: dmjesus89@gmail.com
 
   rate-limit:
     login:
