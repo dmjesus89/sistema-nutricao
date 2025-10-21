@@ -3,6 +3,7 @@ package com.nutrition.presentation.controller;
 import com.nutrition.application.dto.auth.AuthResponse;
 import com.nutrition.application.dto.auth.ForgotPasswordRequest;
 import com.nutrition.application.dto.auth.LoginRequest;
+import com.nutrition.application.dto.auth.MessageResponse;
 import com.nutrition.application.dto.auth.RefreshTokenRequest;
 import com.nutrition.application.dto.auth.RegisterRequest;
 import com.nutrition.application.dto.auth.ResetPasswordRequest;
@@ -35,9 +36,14 @@ public class AuthController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Registrar novo usuário", description = "Cria uma nova conta de usuário")
-    public void register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<MessageResponse> register(@Valid @RequestBody RegisterRequest request) {
         log.info("Registration attempt for email: {}", request.getEmail());
         authService.register(request);
+        MessageResponse response = MessageResponse.builder()
+                .message("Registro realizado com sucesso!")
+                .details("Verifique seu email para confirmar sua conta.")
+                .build();
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/confirm")

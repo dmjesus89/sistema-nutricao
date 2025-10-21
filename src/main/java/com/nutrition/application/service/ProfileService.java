@@ -122,6 +122,11 @@ public class ProfileService {
 
             ProfileResponse response = buildProfileResponse(profile);
 
+            // Adicionar warnings à resposta
+            if (goalValidation.hasWarnings()) {
+                response.setWarnings(goalValidation.getWarnings());
+            }
+
             // Adicionar recomendações à resposta (se houver)
             List<String> recommendations = validationService.generateRecommendations(profile);
             if (!recommendations.isEmpty()) {
@@ -238,9 +243,9 @@ public class ProfileService {
                 profile.getGoal().setCalorieAdjustment(profile.getDailyCalorieTarget().subtract(profile.getTotalDailyEnergyExpenditure()));
             }
 
+            ProfileValidationService.ValidationResult goalValidation = null;
             if (needsGoalValidation) {
-                ProfileValidationService.ValidationResult goalValidation =
-                        validationService.validateWeightGoal(profile);
+                goalValidation = validationService.validateWeightGoal(profile);
 
                 if (goalValidation.hasWarnings()) {
                     String warnings = String.join("; ", goalValidation.getWarnings());
@@ -251,6 +256,11 @@ public class ProfileService {
             profile = profileRepository.save(profile);
 
             ProfileResponse response = buildProfileResponse(profile);
+
+            // Adicionar warnings à resposta
+            if (goalValidation != null && goalValidation.hasWarnings()) {
+                response.setWarnings(goalValidation.getWarnings());
+            }
 
             log.info("Profile updated successfully for user: {}", currentUser.getEmail());
             return response;

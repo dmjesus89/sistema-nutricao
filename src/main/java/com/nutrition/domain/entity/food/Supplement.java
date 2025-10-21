@@ -89,10 +89,6 @@ public class Supplement {
     @Column(name = "regulatory_info", length = 500)
     private String regulatoryInfo; // Anvisa, FDA, etc.
 
-    @Column(name = "verified", nullable = false)
-    @Builder.Default
-    private Boolean verified = false;
-
     @Column(name = "active", nullable = false)
     @Builder.Default
     private Boolean active = true;

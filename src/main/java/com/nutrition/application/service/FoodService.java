@@ -70,7 +70,6 @@ public class FoodService {
                     .servingSize(request.getServingSize())
                     .servingDescription(request.getServingDescription())
                     .source(request.getSource() != null ? request.getSource() : "Manual")
-                    .verified(false) // Admin needs to verify separately
                     .active(true)
                     .createdBy(currentUser)
                     .build();
@@ -179,7 +178,6 @@ public class FoodService {
                         null,
                         null,
                         null,
-                        searchRequest.getVerifiedOnly(),
                         null,
                         pageable
                 );
@@ -357,10 +355,8 @@ public class FoodService {
                 throw new UnprocessableEntityException("Alimento não encontrado");
             }
 
-            food.setVerified(true);
-            foodRepository.save(food);
-
-            log.info("Food verified: {} by admin: {}", food.getName(), getCurrentUser().getEmail());
+            // Note: Verified field has been removed - all foods are now considered verified upon creation
+            log.info("Food verify request (no-op): {} by admin: {}", food.getName(), getCurrentUser().getEmail());
         } catch (Exception e) {
             log.error("Error verifying food: {}", e.getMessage());
             throw new UnprocessableEntityException("Erro interno do servidor");
@@ -473,7 +469,6 @@ public class FoodService {
                 .proteinPerServing(food.getProteinPerServing())
                 .fatPerServing(food.getFatPerServing())
                 .source(food.getSource())
-                .verified(food.getIsVerified())
                 .displayName(food.getDisplayName())
                 .isHighProtein(food.isHighProtein())
                 .isHighFiber(food.isHighFiber())

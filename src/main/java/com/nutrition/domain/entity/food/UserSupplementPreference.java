@@ -20,6 +20,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "user_supplement_preferences",
@@ -49,6 +50,20 @@ public class UserSupplementPreference {
     @Column(name = "notes", length = 500)
     private String notes;
 
+    // Time routine fields for email alerts
+    @Column(name = "dosage_time")
+    private LocalTime dosageTime; // Time of day to take the supplement
+
+    @Column(name = "frequency")
+    private String frequency; // DAILY, WEEKLY, MONTHLY
+
+    @Column(name = "days_of_week", length = 100)
+    private String daysOfWeek; // Comma-separated days (e.g., "MONDAY,WEDNESDAY,FRIDAY")
+
+    @Column(name = "email_reminder_enabled", nullable = false)
+    @Builder.Default
+    private Boolean emailReminderEnabled = false;
+
     @Column(name = "created_at", nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -62,12 +77,7 @@ public class UserSupplementPreference {
     }
 
     public enum PreferenceType {
-        FAVORITE("Favorito", "Suplemento favorito do usuário"),
-        CURRENTLY_USING("Usando atualmente", "Suplemento em uso atual"),
-        USED_BEFORE("Já usei", "Suplemento usado anteriormente"),
-        WANT_TO_TRY("Quero experimentar", "Suplemento de interesse"),
-        RESTRICTION("Restrição", "Suplemento com restrição ou contraindicação"),
-        NOT_SUITABLE("Não adequado", "Suplemento não adequado para o usuário");
+        CURRENTLY_USING("Usando atualmente", "Suplemento em uso atual");
 
         private final String displayName;
         private final String description;
@@ -85,12 +95,8 @@ public class UserSupplementPreference {
             return description;
         }
 
-        public boolean isRestriction() {
-            return this == RESTRICTION || this == NOT_SUITABLE;
-        }
-
         public boolean isPositive() {
-            return this == FAVORITE || this == CURRENTLY_USING || this == WANT_TO_TRY;
+            return this == CURRENTLY_USING;
         }
     }
 }

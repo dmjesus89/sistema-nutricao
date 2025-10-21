@@ -134,24 +134,6 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
             "GROUP BY s.brand ORDER BY COUNT(s) DESC")
     List<Object[]> getTopBrandsBySupplementCount(Pageable pageable);
 
-    // ========== VERIFICATION QUERIES ==========
-
-    /**
-     * Find verified supplements
-     */
-    Page<Supplement> findByVerifiedTrueAndActiveTrueOrderByNameAsc(Pageable pageable);
-
-    /**
-     * Find unverified supplements (for admin review)
-     */
-    Page<Supplement> findByVerifiedFalseAndActiveTrueOrderByCreatedAtDesc(Pageable pageable);
-
-    /**
-     * Count supplements by verification status
-     */
-    @Query("SELECT s.verified, COUNT(s) FROM Supplement s WHERE s.active = true GROUP BY s.verified")
-    List<Object[]> countSupplementsByVerificationStatus();
-
     // ========== SERVING UNIT QUERIES ==========
 
     /**
@@ -240,7 +222,7 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
      * Find recommended supplements for user (suitable + prioritize favorites and wishlist)
      */
     @Query("SELECT s FROM Supplement s " +
-            "WHERE s.active = true AND s.verified = true AND s.id NOT IN " +
+            "WHERE s.active = true AND s.id NOT IN " +
             "(SELECT up.supplement.id FROM UserSupplementPreference up WHERE up.user = :user AND " +
             "up.preferenceType IN ('RESTRICTION', 'NOT_SUITABLE')) " +
             "AND s.id IN (" +
@@ -287,7 +269,6 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
             "(:brand IS NULL OR remove_accents(LOWER(s.brand)) LIKE remove_accents(LOWER(CONCAT('%', :brand, '%')))) AND " +
             "(:ingredient IS NULL OR remove_accents(LOWER(s.main_ingredient)) LIKE remove_accents(LOWER(CONCAT('%', :ingredient, '%')))) AND " +
             "(:servingUnit IS NULL OR s.serving_unit = CAST(:servingUnit AS text)) AND " +
-            "(:verified IS NULL OR s.verified = :verified) AND " +
             "(:hasNutritionalValue IS NULL OR " +
             "(:hasNutritionalValue = false) OR " +
             "(:hasNutritionalValue = true AND s.calories_per_serving IS NOT NULL AND s.calories_per_serving > 0)) " +
@@ -298,7 +279,6 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
                                            @Param("brand") String brand,
                                            @Param("ingredient") String ingredient,
                                            @Param("servingUnit") String servingUnit,
-                                           @Param("verified") Boolean verified,
                                            @Param("hasNutritionalValue") Boolean hasNutritionalValue,
                                            Pageable pageable);
 
@@ -309,12 +289,6 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
      */
     @Query("SELECT COUNT(s) FROM Supplement s WHERE s.active = true")
     long countActiveSupplements();
-
-    /**
-     * Count verified supplements
-     */
-    @Query("SELECT COUNT(s) FROM Supplement s WHERE s.verified = true AND s.active = true")
-    long countVerifiedSupplements();
 
     /**
      * Count supplements with nutritional information
@@ -405,7 +379,7 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
     /**
      * Find supplements compatible with user's dietary restrictions
      */
-    @Query("SELECT s FROM Supplement s WHERE s.active = true AND s.verified = true AND " +
+    @Query("SELECT s FROM Supplement s WHERE s.active = true AND " +
             "(:isVegetarian = false OR s.category != 'PROTEIN' OR LOWER(s.name) NOT LIKE '%whey%') AND " +
             "(:isVegan = false OR (s.category != 'PROTEIN' OR (LOWER(s.name) NOT LIKE '%whey%' AND LOWER(s.name) NOT LIKE '%casein%'))) AND " +
             "(:isDiabetic = false OR s.carbsPerServing IS NULL OR s.carbsPerServing <= 5) " +
@@ -418,7 +392,7 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
     /**
      * Find supplements by goal compatibility (weight loss, muscle gain, etc.)
      */
-    @Query("SELECT s FROM Supplement s WHERE s.active = true AND s.verified = true AND " +
+    @Query("SELECT s FROM Supplement s WHERE s.active = true AND " +
             "(:goalWeightLoss = false OR s.category IN ('WEIGHT_LOSS', 'PROTEIN', 'VITAMINS')) AND " +
             "(:goalMuscleGain = false OR s.category IN ('PROTEIN', 'CREATINE', 'AMINO_ACIDS', 'WEIGHT_GAIN')) AND " +
             "(:goalEndurance = false OR s.category IN ('ENERGY', 'VITAMINS', 'MINERALS', 'PRE_WORKOUT')) " +
@@ -429,12 +403,6 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
                                                         Pageable pageable);
 
     // ========== BULK OPERATIONS ==========
-
-    /**
-     * Bulk update verification status
-     */
-    @Query("UPDATE Supplement s SET s.verified = :verified WHERE s.id IN :ids")
-    int bulkUpdateVerificationStatus(@Param("ids") List<Long> ids, @Param("verified") boolean verified);
 
     /**
      * Bulk soft delete

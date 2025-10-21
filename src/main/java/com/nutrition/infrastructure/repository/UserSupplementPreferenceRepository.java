@@ -140,6 +140,14 @@ public interface UserSupplementPreferenceRepository extends JpaRepository<UserSu
     @Modifying
     @Query("UPDATE UserSupplementPreference usp SET usp.preferenceType = :newType WHERE usp.user = :user AND usp.supplement = :supplement")
     int updatePreferenceType(@Param("user") User user, @Param("supplement") Supplement supplement, @Param("newType") UserSupplementPreference.PreferenceType newType);
+
+    /**
+     * Find all preferences with email reminders enabled for a specific preference type
+     */
+    @Query("SELECT usp FROM UserSupplementPreference usp JOIN FETCH usp.supplement s JOIN FETCH usp.user u " +
+            "WHERE usp.emailReminderEnabled = true AND usp.preferenceType = :preferenceType AND s.active = true")
+    List<UserSupplementPreference> findByEmailReminderEnabledTrueAndPreferenceType(
+            @Param("preferenceType") UserSupplementPreference.PreferenceType preferenceType);
 }
 
 

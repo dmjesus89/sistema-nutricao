@@ -50,11 +50,9 @@ public class AdminService {
 
             // Estatísticas de alimentos
             stats.put("total_foods", foodRepository.countActiveFoods());
-            stats.put("verified_foods", foodRepository.countVerifiedFoods());
 
             // Estatísticas de suplementos
             stats.put("total_supplements", supplementRepository.countActiveSupplements());
-            stats.put("verified_supplements", supplementRepository.countVerifiedSupplements());
 
             // Estatísticas de preferências
             stats.put("food_preferences", foodPreferenceRepository.count());
@@ -77,7 +75,6 @@ public class AdminService {
             Map<String, Object> stats = new HashMap<>();
 
             stats.put("total_active", foodRepository.countActiveFoods());
-            stats.put("total_verified", foodRepository.countVerifiedFoods());
 
             List<Object[]> categoryStats = foodRepository.countFoodsByCategory();
             Map<String, Long> categoryCounts = new HashMap<>();
@@ -99,7 +96,6 @@ public class AdminService {
             Map<String, Object> stats = new HashMap<>();
 
             stats.put("total_active", supplementRepository.countActiveSupplements());
-            stats.put("total_verified", supplementRepository.countVerifiedSupplements());
 
             List<Object[]> categoryStats = supplementRepository.countSupplementsByCategory();
             Map<String, Long> categoryCounts = new HashMap<>();

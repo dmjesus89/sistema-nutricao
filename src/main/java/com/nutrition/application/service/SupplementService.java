@@ -2,6 +2,7 @@ package com.nutrition.application.service;
 
 import com.nutrition.application.dto.food.CreateSupplementRequest;
 import com.nutrition.application.dto.food.SupplementResponse;
+import com.nutrition.application.dto.food.TimeRoutineRequest;
 import com.nutrition.application.dto.food.UserPreferenceRequest;
 import com.nutrition.domain.entity.auth.User;
 import com.nutrition.domain.entity.food.Supplement;
@@ -66,7 +67,6 @@ public class SupplementService {
                     .usageInstructions(request.getUsageInstructions())
                     .warnings(request.getWarnings())
                     .regulatoryInfo(request.getRegulatoryInfo())
-                    .verified(false) // Admin needs to verify separately
                     .active(true)
                     .createdBy(currentUser)
                     .build();
@@ -108,7 +108,6 @@ public class SupplementService {
                         brand,  // brand
                         null,   // ingredient
                         null,   // servingUnit
-                        verified,  // verified
                         null,   // hasNutritionalValue
                         pageable
                 );
@@ -148,7 +147,6 @@ public class SupplementService {
                     brand,
                     ingredient,
                     servingUnit,  // servingUnit (String)
-                    verified,
                     hasNutritionalValue,
                     pageable
             );
@@ -285,6 +283,46 @@ public class SupplementService {
         }
     }
 
+    @Transactional
+    public SupplementResponse updateTimeRoutine(Long supplementId, TimeRoutineRequest request) {
+        try {
+            User currentUser = getCurrentUser();
+
+            Supplement supplement = supplementRepository.findByIdAndActiveTrue(supplementId)
+                    .orElseThrow(() -> new UnprocessableEntityException("Suplemento não encontrado"));
+
+            // Find the user's preference for this supplement
+            UserSupplementPreference preference = preferenceRepository.findByUserAndSupplement(currentUser, supplement)
+                    .orElseThrow(() -> new UnprocessableEntityException(
+                            "Você precisa marcar o suplemento como 'em uso' antes de definir uma rotina"));
+
+            // Verify it's marked as CURRENTLY_USING
+            if (preference.getPreferenceType() != UserSupplementPreference.PreferenceType.CURRENTLY_USING) {
+                throw new UnprocessableEntityException(
+                        "Rotina de horário só pode ser definida para suplementos em uso atual");
+            }
+
+            // Update the time routine fields
+            preference.setDosageTime(java.time.LocalTime.parse(request.getDosageTime()));
+            preference.setFrequency(request.getFrequency());
+            preference.setDaysOfWeek(request.getDaysOfWeek());
+            preference.setEmailReminderEnabled(request.getEmailReminderEnabled());
+
+            preferenceRepository.save(preference);
+
+            log.info("Time routine updated for supplement {} by user {}",
+                    supplement.getName(), currentUser.getEmail());
+
+            return buildSupplementResponse(supplement, currentUser);
+
+        } catch (UnprocessableEntityException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error updating time routine: {}", e.getMessage(), e);
+            throw new UnprocessableEntityException("Erro ao atualizar rotina de horário");
+        }
+    }
+
     public List<SupplementResponse> getUserFavorites() {
         try {
             User currentUser = getCurrentUser();
@@ -351,10 +389,8 @@ public class SupplementService {
                 throw new UnprocessableEntityException("Suplemento não encontrado");
             }
 
-            supplement.setVerified(true);
-            supplementRepository.save(supplement);
-
-            log.info("Supplement verified: {} by admin: {}", supplement.getName(), getCurrentUser().getEmail());
+            // Note: Verified field has been removed - all supplements are now considered verified upon creation
+            log.info("Supplement verify request (no-op): {} by admin: {}", supplement.getName(), getCurrentUser().getEmail());
         } catch (Exception e) {
             log.error("Error verifying supplement: {}", e.getMessage());
             throw new UnprocessableEntityException("Erro interno do servidor");
@@ -501,7 +537,6 @@ public class SupplementService {
                 .usageInstructions(supplement.getUsageInstructions())
                 .warnings(supplement.getWarnings())
                 .regulatoryInfo(supplement.getRegulatoryInfo())
-                .verified(supplement.getVerified())
                 .displayName(supplement.getDisplayName())
                 .hasNutritionalValue(supplement.hasNutritionalValue())
                 .userPreference(userPreference)

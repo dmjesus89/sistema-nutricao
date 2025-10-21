@@ -86,7 +86,6 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
             "(:maxFat IS NULL OR f.fat_per_100g <= :maxFat) AND " +
             "(:minFiber IS NULL OR f.fiber_per_100g IS NULL OR f.fiber_per_100g >= :minFiber) AND " +
             "(:maxSodium IS NULL OR f.sodium_per_100g IS NULL OR f.sodium_per_100g <= :maxSodium) AND " +
-            "(:verified IS NULL OR f.verified = :verified) AND " +
             "(:barcode IS NULL OR f.barcode = :barcode) " +
             "ORDER BY f.name ASC", nativeQuery = true)
     Page<Food> findByAdvancedFilters(@Param("name") String name,
@@ -98,7 +97,6 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
                                      @Param("maxFat") BigDecimal maxFat,
                                      @Param("minFiber") BigDecimal minFiber,
                                      @Param("maxSodium") BigDecimal maxSodium,
-                                     @Param("verified") Boolean verified,
                                      @Param("barcode") String barcode,
                                      Pageable pageable);
 
@@ -110,12 +108,6 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
      */
     @Query("SELECT COUNT(f) FROM Food f WHERE f.active = true")
     long countActiveFoods();
-
-    /**
-     * Count verified foods
-     */
-    @Query("SELECT COUNT(f) FROM Food f WHERE f.verified = true AND f.active = true")
-    long countVerifiedFoods();
 
     /**
      * Count foods by category

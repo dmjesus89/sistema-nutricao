@@ -87,10 +87,6 @@ public class Food {
     @Column(name = "source", length = 100)
     private String source; // USDA, TACO, Manual, etc.
 
-    @Column(name = "verified", nullable = false)
-    @Builder.Default
-    private Boolean verified = false; // FIXED: renamed from 'verified'
-
     @Column(name = "active", nullable = false)
     @Builder.Default
     private Boolean active = true; // FIXED: renamed from 'active'
@@ -164,10 +160,6 @@ public class Food {
     // MISSING GETTERS - adding the ones referenced in the controller
     public String getServingUnit() {
         return servingUnit;
-    }
-
-    public Boolean getIsVerified() {
-        return verified;
     }
 
     public Boolean getIsActive() {

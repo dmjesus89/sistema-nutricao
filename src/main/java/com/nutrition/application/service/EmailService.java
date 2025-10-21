@@ -390,4 +390,54 @@ public class EmailService {
                 </html>
                 """, firstName, mealsConsumed, totalCalories, dashboardUrl);
     }
+
+    /**
+     * Send supplement reminder email
+     */
+    public void sendSupplementReminderEmail(String toEmail, String toName, String supplementName,
+                                            String dosageTime, String recommendedDosage) {
+        String subject = "⏰ Lembrete: Hora do seu suplemento - " + supplementName;
+        String htmlBody = buildSupplementReminderEmailBody(toName, supplementName, dosageTime, recommendedDosage);
+
+        sendEmail(toEmail, subject, htmlBody);
+    }
+
+    /**
+     * Build HTML body for supplement reminder email
+     */
+    private String buildSupplementReminderEmailBody(String firstName, String supplementName,
+                                                    String dosageTime, String recommendedDosage) {
+        String dashboardUrl = frontEndUrl + "/dashboard";
+
+        return String.format("""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                </head>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; border-radius: 10px; color: white; text-align: center;">
+                        <h1 style="margin: 0; font-size: 28px;">⏰ Lembrete de Suplemento</h1>
+                    </div>
+                    <div style="background-color: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+                        <p style="font-size: 16px;">Olá <strong>%s</strong>! 👋</p>
+                        <div style="background-color: white; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; margin: 20px 0;">
+                            <h2 style="color: #667eea; margin-top: 0;">💊 %s</h2>
+                            <p style="margin: 10px 0;"><strong>⏰ Horário:</strong> %s</p>
+                            <p style="margin: 10px 0;"><strong>📋 Dosagem recomendada:</strong> %s</p>
+                        </div>
+                        <p style="color: #666; font-size: 14px; margin: 20px 0;">
+                            💡 <strong>Dica:</strong> Não se esqueça de tomar seu suplemento com água e de acordo com as instruções.
+                        </p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="%s" style="background-color: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Ver Meus Suplementos</a>
+                        </div>
+                        <p style="margin-top: 30px; color: #666; font-size: 12px; text-align: center;">
+                            ✅ Mantenha sua rotina de suplementação em dia!
+                        </p>
+                    </div>
+                </body>
+                </html>
+                """, firstName, supplementName, dosageTime, recommendedDosage, dashboardUrl);
+    }
 }

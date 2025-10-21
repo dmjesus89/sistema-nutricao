@@ -75,8 +75,6 @@ public class SupplementResponse {
     @JsonProperty("regulatoryInfo")
     private String regulatoryInfo;
 
-    private Boolean verified;
-
     @JsonProperty("displayName")
     private String displayName;
 

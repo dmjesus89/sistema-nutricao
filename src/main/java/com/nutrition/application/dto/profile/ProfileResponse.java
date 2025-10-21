@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @Builder
@@ -81,4 +82,7 @@ public class ProfileResponse {
 
     @JsonProperty("dailyWaterIntake")
     private BigDecimal dailyWaterIntake;
+
+    @JsonProperty("warnings")
+    private List<String> warnings;
 }

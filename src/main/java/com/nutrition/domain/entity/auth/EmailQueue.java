@@ -76,7 +76,8 @@ public class EmailQueue {
         PASSWORD_RESET,
         MEAL_REMINDER,
         MEAL_CONSUMPTION,
-        WEEKLY_SUMMARY
+        WEEKLY_SUMMARY,
+        SUPPLEMENT_REMINDER
     }
 
     public enum Status {

@@ -50,10 +50,7 @@ public class UserFoodPreference {
     }
 
     public enum PreferenceType {
-        FAVORITE("Favorito", "Alimento favorito do usuário"),
-        RESTRICTION("Restrição", "Alimento com restrição (alergia, intolerância, etc.)"),
-        DISLIKE("Não gosta", "Alimento que o usuário não gosta"),
-        AVOID("Evitar", "Alimento que o usuário prefere evitar");
+        FAVORITE("Favorito", "Alimento favorito do usuário");
 
         private final String displayName;
         private final String description;
@@ -69,10 +66,6 @@ public class UserFoodPreference {
 
         public String getDescription() {
             return description;
-        }
-
-        public boolean isRestriction() {
-            return this == RESTRICTION || this == AVOID;
         }
 
         public boolean isPositive() {

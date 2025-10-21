@@ -23,6 +23,18 @@ public class SupplementPreferenceResponse {
 
     private String notes;
 
+    @JsonProperty("dosageTime")
+    private String dosageTime;
+
+    @JsonProperty("frequency")
+    private String frequency;
+
+    @JsonProperty("daysOfWeek")
+    private String daysOfWeek;
+
+    @JsonProperty("emailReminderEnabled")
+    private Boolean emailReminderEnabled;
+
     @JsonProperty("createdAt")
     private String createdAt;
 }

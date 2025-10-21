@@ -398,7 +398,6 @@ public class MealService {
                 .proteinPerServing(food.getProteinPerServing())
                 .fatPerServing(food.getFatPerServing())
                 .source(food.getSource())
-                .verified(food.getIsVerified())
                 .displayName(food.getDisplayName())
                 .isHighProtein(food.isHighProtein())
                 .isHighFiber(food.isHighFiber())
