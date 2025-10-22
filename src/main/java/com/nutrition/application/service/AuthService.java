@@ -60,7 +60,7 @@ public class AuthService {
                 throw new UnprocessableEntityException("Email já está em uso");
             }
 
-            User user = User.builder().firstName(request.getFirstName()).lastName(request.getLastName()).email(request.getEmail().toLowerCase()).password(passwordEncoder.encode(request.getPassword())).role(User.Role.USER).emailConfirmed(false).enabled(false).build();
+            User user = User.builder().firstName(request.getFirstName()).lastName(request.getLastName()).email(request.getEmail().toLowerCase()).password(passwordEncoder.encode(request.getPassword())).role(User.Role.USER).emailConfirmed(false).enabled(false).preferredLocale(request.getPreferredLocale() != null ? request.getPreferredLocale() : "en").build();
             user = userRepository.save(user);
 
             String token = UUID.randomUUID().toString();

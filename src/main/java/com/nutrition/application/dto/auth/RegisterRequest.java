@@ -33,4 +33,9 @@ public class RegisterRequest {
     @NotBlank(message = "Senha é obrigatória")
     @Size(min = 8, max = 100, message = "Senha deve ter entre 8 e 100 caracteres")
     private String password;
+
+    @Size(max = 5, message = "Locale deve ter no máximo 5 caracteres")
+    @JsonProperty("preferredLocale")
+    @Builder.Default
+    private String preferredLocale = "en"; // en, es, pt
 }

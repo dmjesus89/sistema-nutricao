@@ -148,6 +148,13 @@ public interface UserSupplementPreferenceRepository extends JpaRepository<UserSu
             "WHERE usp.emailReminderEnabled = true AND usp.preferenceType = :preferenceType AND s.active = true")
     List<UserSupplementPreference> findByEmailReminderEnabledTrueAndPreferenceType(
             @Param("preferenceType") UserSupplementPreference.PreferenceType preferenceType);
+
+    /**
+     * Find all preferences with email reminders enabled (for scheduler)
+     */
+    @Query("SELECT usp FROM UserSupplementPreference usp JOIN FETCH usp.supplement s JOIN FETCH usp.user u " +
+            "WHERE usp.emailReminderEnabled = true AND usp.preferenceType = 'CURRENTLY_USING' AND s.active = true")
+    List<UserSupplementPreference> findByEmailReminderEnabledTrue();
 }
 
 

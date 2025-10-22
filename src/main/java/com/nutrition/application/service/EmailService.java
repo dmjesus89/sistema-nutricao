@@ -169,6 +169,13 @@ public class EmailService {
         }
     }
 
+    /**
+     * Public method to send HTML email synchronously
+     */
+    public void sendHtmlEmail(String to, String subject, String htmlContent) {
+        sendEmail(to, subject, htmlContent);
+    }
+
     private void sendEmail(String to, String subject, String htmlContent) {
         boolean success = sendEmailSync(to, subject, htmlContent);
         if (!success) {

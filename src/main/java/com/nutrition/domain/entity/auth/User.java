@@ -77,6 +77,10 @@ public class User implements UserDetails {
     @Column(name = "welcome_email_sent_at")
     private LocalDateTime welcomeEmailSentAt;
 
+    @Column(name = "preferred_locale", length = 5)
+    @Builder.Default
+    private String preferredLocale = "en"; // en, es, pt
+
     @Column(name = "created_at", nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
