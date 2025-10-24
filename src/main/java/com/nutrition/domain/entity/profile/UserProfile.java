@@ -69,16 +69,16 @@ public class UserProfile {
     @Builder.Default
     private Goal goal = Goal.MAINTAIN_WEIGHT;
 
-    @Column(name = "basal_metabolic_rate", precision = 7, scale = 2)
+    @Column(name = "basal_metabolic_rate", precision = 8, scale = 2)
     private BigDecimal basalMetabolicRate; // Basal Metabolic Rate
 
-    @Column(name = "total_daily_energy_expenditure", precision = 7, scale = 2)
+    @Column(name = "total_daily_energy_expenditure", precision = 8, scale = 2)
     private BigDecimal totalDailyEnergyExpenditure; // Total Daily Energy Expenditure
 
-    @Column(name = "daily_calories", precision = 7, scale = 2)
+    @Column(name = "daily_calories", precision = 8, scale = 2)
     private BigDecimal dailyCalorieTarget; // Daily calories based on goal
 
-    @Column(name = "daily_water_intake", precision = 7, scale = 2)
+    @Column(name = "daily_water_intake", precision = 8, scale = 2)
     private BigDecimal dailyWaterIntake;
 
     @Column(name = "created_at", nullable = false)
