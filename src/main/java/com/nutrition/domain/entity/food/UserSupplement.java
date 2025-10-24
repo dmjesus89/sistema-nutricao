@@ -1,6 +1,7 @@
 package com.nutrition.domain.entity.food;
 
 import com.nutrition.domain.entity.auth.User;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,6 +12,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -21,6 +23,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Entity representing a user's supplement tracking with frequency and reminder settings.
@@ -68,6 +72,10 @@ public class UserSupplement {
     @Column(name = "last_taken_at")
     private LocalDateTime lastTakenAt; // Track when user last took the supplement
 
+    @OneToMany(mappedBy = "userSupplement", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<UserSupplementSchedule> schedules = new ArrayList<>();
+
     @Column(name = "created_at", nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -109,5 +117,25 @@ public class UserSupplement {
      */
     public void markAsTaken() {
         this.lastTakenAt = LocalDateTime.now();
+    }
+
+    /**
+     * Add a new schedule/dosage time
+     */
+    public void addSchedule(LocalTime time, String label) {
+        UserSupplementSchedule schedule = UserSupplementSchedule.builder()
+                .userSupplement(this)
+                .dosageTime(time)
+                .label(label)
+                .build();
+        schedules.add(schedule);
+    }
+
+    /**
+     * Remove a schedule
+     */
+    public void removeSchedule(UserSupplementSchedule schedule) {
+        schedules.remove(schedule);
+        schedule.setUserSupplement(null);
     }
 }

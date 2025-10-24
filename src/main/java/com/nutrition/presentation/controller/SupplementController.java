@@ -1,10 +1,13 @@
 package com.nutrition.presentation.controller;
 
+import com.nutrition.application.dto.food.AddScheduleRequest;
 import com.nutrition.application.dto.food.AddSupplementRequest;
 import com.nutrition.application.dto.food.CreateSupplementRequest;
 import com.nutrition.application.dto.food.FoodResponse;
+import com.nutrition.application.dto.food.ScheduleResponse;
 import com.nutrition.application.dto.food.SupplementResponse;
 import com.nutrition.application.dto.food.TimeRoutineRequest;
+import com.nutrition.application.dto.food.UpdateScheduleRequest;
 import com.nutrition.application.dto.food.UpdateSupplementFrequencyRequest;
 import com.nutrition.application.dto.food.UserPreferenceRequest;
 import com.nutrition.application.dto.food.UserSupplementResponse;
@@ -197,5 +200,55 @@ public class SupplementController {
         log.info("Get user supplements by frequency request: {}", frequency);
         List<UserSupplementResponse> response = supplementService.getUserSupplementsByFrequency(frequency);
         return ResponseEntity.ok(response);
+    }
+
+    // ========== SCHEDULE MANAGEMENT ENDPOINTS (Multiple doses per day) ==========
+
+    @PostMapping("/{id}/schedules")
+    @Operation(summary = "Adicionar horário de dosagem",
+               description = "Adiciona um novo horário de dosagem para o suplemento (permite múltiplos horários por dia)")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<ScheduleResponse> addSchedule(
+            @Parameter(description = "ID do suplemento rastreado") @PathVariable Long id,
+            @Valid @RequestBody AddScheduleRequest request) {
+        log.info("Add schedule request for user supplement ID: {}", id);
+        ScheduleResponse response = supplementService.addSchedule(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/schedules")
+    @Operation(summary = "Listar horários de dosagem",
+               description = "Lista todos os horários de dosagem configurados para este suplemento")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<List<ScheduleResponse>> getSchedules(
+            @Parameter(description = "ID do suplemento rastreado") @PathVariable Long id) {
+        log.info("Get schedules request for user supplement ID: {}", id);
+        List<ScheduleResponse> response = supplementService.getSchedules(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}/schedules/{scheduleId}")
+    @Operation(summary = "Atualizar horário de dosagem",
+               description = "Atualiza um horário de dosagem específico")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<ScheduleResponse> updateSchedule(
+            @Parameter(description = "ID do suplemento rastreado") @PathVariable Long id,
+            @Parameter(description = "ID do horário de dosagem") @PathVariable Long scheduleId,
+            @Valid @RequestBody UpdateScheduleRequest request) {
+        log.info("Update schedule request for user supplement ID: {}, schedule ID: {}", id, scheduleId);
+        ScheduleResponse response = supplementService.updateSchedule(id, scheduleId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}/schedules/{scheduleId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Remover horário de dosagem",
+               description = "Remove um horário de dosagem específico")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public void removeSchedule(
+            @Parameter(description = "ID do suplemento rastreado") @PathVariable Long id,
+            @Parameter(description = "ID do horário de dosagem") @PathVariable Long scheduleId) {
+        log.info("Remove schedule request for user supplement ID: {}, schedule ID: {}", id, scheduleId);
+        supplementService.removeSchedule(id, scheduleId);
     }
 }

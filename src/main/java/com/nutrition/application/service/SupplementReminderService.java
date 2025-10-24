@@ -49,8 +49,19 @@ public class SupplementReminderService {
 
         for (UserSupplement userSupplement : userSupplements) {
             try {
-                if (shouldSendReminder(userSupplement, currentTime, currentDay)) {
-                    sendReminderEmail(userSupplement);
+                // Check schedules first (for multiple doses per day)
+                if (!userSupplement.getSchedules().isEmpty()) {
+                    // Use schedules for reminder times
+                    for (var schedule : userSupplement.getSchedules()) {
+                        if (shouldSendReminderForSchedule(schedule, userSupplement, currentTime, currentDay)) {
+                            sendReminderEmailForSchedule(userSupplement, schedule);
+                        }
+                    }
+                } else {
+                    // Fallback to old dosageTime field for backward compatibility
+                    if (shouldSendReminder(userSupplement, currentTime, currentDay)) {
+                        sendReminderEmail(userSupplement);
+                    }
                 }
             } catch (Exception e) {
                 log.error("Error sending reminder for user supplement ID {}: {}", userSupplement.getId(), e.getMessage(), e);
@@ -182,5 +193,96 @@ public class SupplementReminderService {
             case SATURDAY -> "SAT";
             case SUNDAY -> "SUN";
         };
+    }
+
+    // ========== SCHEDULE-BASED REMINDER METHODS (Multiple doses per day) ==========
+
+    /**
+     * Determines if a reminder should be sent for a specific schedule
+     */
+    private boolean shouldSendReminderForSchedule(
+            com.nutrition.domain.entity.food.UserSupplementSchedule schedule,
+            UserSupplement userSupplement,
+            LocalTime currentTime,
+            DayOfWeek currentDay) {
+
+        // Check if current time matches schedule dosage time (within 30 minutes)
+        LocalTime dosageTime = schedule.getDosageTime();
+        long minutesDifference = Math.abs(
+                currentTime.toSecondOfDay() / 60 - dosageTime.toSecondOfDay() / 60
+        );
+
+        if (minutesDifference > 30) {
+            return false;
+        }
+
+        // Check frequency
+        UserSupplement.Frequency frequency = userSupplement.getFrequency();
+        if (frequency == null || frequency == UserSupplement.Frequency.DAILY) {
+            return true; // Daily reminders always send
+        }
+
+        if (frequency == UserSupplement.Frequency.WEEKLY) {
+            // Check if today is one of the selected days
+            String daysOfWeek = userSupplement.getDaysOfWeek();
+            if (daysOfWeek == null || daysOfWeek.isEmpty()) {
+                return false;
+            }
+
+            String currentDayAbbr = getDayAbbreviation(currentDay);
+            return daysOfWeek.contains(currentDayAbbr);
+        }
+
+        if (frequency == UserSupplement.Frequency.MONTHLY) {
+            // Send reminder on the first day of the month
+            return LocalDate.now().getDayOfMonth() == 1;
+        }
+
+        return false;
+    }
+
+    /**
+     * Sends reminder email for a specific schedule
+     */
+    private void sendReminderEmailForSchedule(
+            UserSupplement userSupplement,
+            com.nutrition.domain.entity.food.UserSupplementSchedule schedule) {
+        try {
+            Supplement supplement = userSupplement.getSupplement();
+            String userEmail = userSupplement.getUser().getEmail();
+            String userName = userSupplement.getUser().getFirstName();
+            String locale = userSupplement.getUser().getPreferredLocale();
+
+            if (locale == null || locale.isEmpty()) {
+                locale = "en"; // Default to English
+            }
+
+            // Load email template based on locale
+            String emailContent = loadEmailTemplate(locale);
+
+            // Build schedule label for display
+            String scheduleLabel = schedule.getLabel() != null && !schedule.getLabel().isEmpty()
+                    ? " (" + schedule.getLabel() + ")"
+                    : "";
+
+            // Replace placeholders
+            emailContent = emailContent.replace("{userName}", userName)
+                    .replace("{supplementName}", supplement.getName())
+                    .replace("{dosage}", supplement.getRecommendedDosage() != null ? supplement.getRecommendedDosage() : "As recommended")
+                    .replace("{time}", schedule.getDosageTime().toString() + scheduleLabel);
+
+            // Get subject line based on locale
+            String subject = getSubject(locale);
+
+            // Send email
+            emailService.sendHtmlEmail(userEmail, subject, emailContent);
+
+            log.info("Sent supplement reminder to {} for supplement: {} at {} {}",
+                    userEmail, supplement.getName(), schedule.getDosageTime(), scheduleLabel);
+
+        } catch (Exception e) {
+            log.error("Failed to send supplement reminder email for schedule", e);
+            throw new RuntimeException("Failed to send supplement reminder email for schedule", e);
+        }
     }
 }

@@ -1,19 +1,24 @@
 package com.nutrition.application.service;
 
+import com.nutrition.application.dto.food.AddScheduleRequest;
 import com.nutrition.application.dto.food.AddSupplementRequest;
 import com.nutrition.application.dto.food.CreateSupplementRequest;
+import com.nutrition.application.dto.food.ScheduleResponse;
 import com.nutrition.application.dto.food.SupplementResponse;
 import com.nutrition.application.dto.food.TimeRoutineRequest;
+import com.nutrition.application.dto.food.UpdateScheduleRequest;
 import com.nutrition.application.dto.food.UpdateSupplementFrequencyRequest;
 import com.nutrition.application.dto.food.UserPreferenceRequest;
 import com.nutrition.application.dto.food.UserSupplementResponse;
 import com.nutrition.domain.entity.auth.User;
 import com.nutrition.domain.entity.food.Supplement;
 import com.nutrition.domain.entity.food.UserSupplement;
+import com.nutrition.domain.entity.food.UserSupplementSchedule;
 import com.nutrition.infrastructure.exception.UnprocessableEntityException;
 import com.nutrition.infrastructure.repository.SupplementRepository;
 import com.nutrition.infrastructure.repository.UserRepository;
 import com.nutrition.infrastructure.repository.UserSupplementRepository;
+import com.nutrition.infrastructure.repository.UserSupplementScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -37,6 +42,7 @@ public class SupplementService {
 
     private final SupplementRepository supplementRepository;
     private final UserSupplementRepository userSupplementRepository;
+    private final UserSupplementScheduleRepository userSupplementScheduleRepository;
     private final UserRepository userRepository;
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -594,6 +600,155 @@ public class SupplementService {
                 .lastTakenAt(userSupplement.getLastTakenAt())
                 .createdAt(userSupplement.getCreatedAt())
                 .updatedAt(userSupplement.getUpdatedAt())
+                .build();
+    }
+
+    // ========== SCHEDULE MANAGEMENT METHODS ==========
+
+    /**
+     * Add a new dosage time/schedule to a user supplement
+     */
+    @Transactional
+    public ScheduleResponse addSchedule(Long userSupplementId, AddScheduleRequest request) {
+        try {
+            User currentUser = getCurrentUser();
+
+            // Find the user supplement and verify ownership
+            UserSupplement userSupplement = userSupplementRepository.findById(userSupplementId)
+                    .orElseThrow(() -> new UnprocessableEntityException("Suplemento não encontrado"));
+
+            if (!userSupplement.getUser().getId().equals(currentUser.getId())) {
+                throw new UnprocessableEntityException("Você não tem permissão para adicionar horários a este suplemento");
+            }
+
+            // Parse dosage time
+            java.time.LocalTime dosageTime = java.time.LocalTime.parse(request.getDosageTime());
+
+            // Create and save the schedule
+            UserSupplementSchedule schedule = UserSupplementSchedule.builder()
+                    .userSupplement(userSupplement)
+                    .dosageTime(dosageTime)
+                    .label(request.getLabel())
+                    .build();
+
+            schedule = userSupplementScheduleRepository.save(schedule);
+
+            log.info("Schedule added for user supplement ID {}: {}", userSupplementId, request.getDosageTime());
+
+            return buildScheduleResponse(schedule);
+
+        } catch (Exception e) {
+            log.error("Error adding schedule: {}", e.getMessage());
+            throw new UnprocessableEntityException("Erro ao adicionar horário de dosagem");
+        }
+    }
+
+    /**
+     * Get all schedules for a user supplement
+     */
+    public List<ScheduleResponse> getSchedules(Long userSupplementId) {
+        try {
+            User currentUser = getCurrentUser();
+
+            // Find the user supplement and verify ownership
+            UserSupplement userSupplement = userSupplementRepository.findById(userSupplementId)
+                    .orElseThrow(() -> new UnprocessableEntityException("Suplemento não encontrado"));
+
+            if (!userSupplement.getUser().getId().equals(currentUser.getId())) {
+                throw new UnprocessableEntityException("Você não tem permissão para ver os horários deste suplemento");
+            }
+
+            List<UserSupplementSchedule> schedules = userSupplementScheduleRepository
+                    .findByUserSupplementId(userSupplementId);
+
+            return schedules.stream()
+                    .map(this::buildScheduleResponse)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.error("Error getting schedules: {}", e.getMessage());
+            throw new UnprocessableEntityException("Erro ao buscar horários de dosagem");
+        }
+    }
+
+    /**
+     * Update a specific schedule
+     */
+    @Transactional
+    public ScheduleResponse updateSchedule(Long userSupplementId, Long scheduleId, UpdateScheduleRequest request) {
+        try {
+            User currentUser = getCurrentUser();
+
+            // Find the user supplement and verify ownership
+            UserSupplement userSupplement = userSupplementRepository.findById(userSupplementId)
+                    .orElseThrow(() -> new UnprocessableEntityException("Suplemento não encontrado"));
+
+            if (!userSupplement.getUser().getId().equals(currentUser.getId())) {
+                throw new UnprocessableEntityException("Você não tem permissão para atualizar horários deste suplemento");
+            }
+
+            // Find the schedule
+            UserSupplementSchedule schedule = userSupplementScheduleRepository
+                    .findByIdAndUserSupplementId(scheduleId, userSupplementId)
+                    .orElseThrow(() -> new UnprocessableEntityException("Horário de dosagem não encontrado"));
+
+            // Update fields if provided
+            if (request.getDosageTime() != null) {
+                schedule.setDosageTime(java.time.LocalTime.parse(request.getDosageTime()));
+            }
+            if (request.getLabel() != null) {
+                schedule.setLabel(request.getLabel());
+            }
+
+            schedule = userSupplementScheduleRepository.save(schedule);
+
+            log.info("Schedule updated for user supplement ID {}: schedule ID {}", userSupplementId, scheduleId);
+
+            return buildScheduleResponse(schedule);
+
+        } catch (Exception e) {
+            log.error("Error updating schedule: {}", e.getMessage());
+            throw new UnprocessableEntityException("Erro ao atualizar horário de dosagem");
+        }
+    }
+
+    /**
+     * Remove a specific schedule
+     */
+    @Transactional
+    public void removeSchedule(Long userSupplementId, Long scheduleId) {
+        try {
+            User currentUser = getCurrentUser();
+
+            // Find the user supplement and verify ownership
+            UserSupplement userSupplement = userSupplementRepository.findById(userSupplementId)
+                    .orElseThrow(() -> new UnprocessableEntityException("Suplemento não encontrado"));
+
+            if (!userSupplement.getUser().getId().equals(currentUser.getId())) {
+                throw new UnprocessableEntityException("Você não tem permissão para remover horários deste suplemento");
+            }
+
+            // Find and delete the schedule
+            UserSupplementSchedule schedule = userSupplementScheduleRepository
+                    .findByIdAndUserSupplementId(scheduleId, userSupplementId)
+                    .orElseThrow(() -> new UnprocessableEntityException("Horário de dosagem não encontrado"));
+
+            userSupplementScheduleRepository.delete(schedule);
+
+            log.info("Schedule removed for user supplement ID {}: schedule ID {}", userSupplementId, scheduleId);
+
+        } catch (Exception e) {
+            log.error("Error removing schedule: {}", e.getMessage());
+            throw new UnprocessableEntityException("Erro ao remover horário de dosagem");
+        }
+    }
+
+    private ScheduleResponse buildScheduleResponse(UserSupplementSchedule schedule) {
+        return ScheduleResponse.builder()
+                .id(schedule.getId())
+                .dosageTime(schedule.getDosageTime().toString())
+                .label(schedule.getLabel())
+                .createdAt(schedule.getCreatedAt())
                 .build();
     }
 }
