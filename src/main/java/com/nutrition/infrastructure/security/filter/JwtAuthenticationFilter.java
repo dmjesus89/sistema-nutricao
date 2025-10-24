@@ -35,7 +35,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String authHeader = request.getHeader("Authorization");
 
+        log.debug("Processing request - Method: {}, URI: {}, Auth Header: {}",
+                request.getMethod(),
+                request.getRequestURI(),
+                authHeader != null ? "Present" : "Missing");
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.warn("No valid Bearer token found for {} {}",
+                    request.getMethod(), request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
