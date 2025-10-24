@@ -7,8 +7,6 @@ import com.nutrition.domain.entity.food.Food;
 import com.nutrition.domain.entity.meal.Meal;
 import com.nutrition.domain.entity.meal.MealConsumption;
 import com.nutrition.domain.entity.meal.MealFood;
-import com.nutrition.domain.entity.tracking.CalorieEntry;
-import com.nutrition.infrastructure.repository.CalorieEntryRepository;
 import com.nutrition.infrastructure.repository.FoodRepository;
 import com.nutrition.infrastructure.repository.MealConsumptionRepository;
 import com.nutrition.infrastructure.repository.MealRepository;
@@ -32,7 +30,6 @@ public class MealService {
 
     private final MealRepository mealRepository;
     private final FoodRepository foodRepository;
-    private final CalorieEntryRepository calorieEntryRepository;
     private final MealConsumptionRepository mealConsumptionRepository;
 
     public MealTemplateResponseDTO createMeal(MealCreateDTO createDTO, User user) {
@@ -196,9 +193,6 @@ public class MealService {
 
         mealConsumptionRepository.save(consumption);
 
-        // Create calorie entry
-        createCalorieEntryForConsumption(consumption, meal);
-
         return MealConsumptionResponseDTO.builder()
                 .mealId(mealId)
                 .isConsumed(true)
@@ -221,9 +215,6 @@ public class MealService {
         MealConsumption consumption = mealConsumptionRepository
                 .findByMealIdAndUserIdAndConsumptionDate(mealId, user.getId(), dateToUnconsume)
                 .orElseThrow(() -> new IllegalArgumentException("Consumo não encontrado para esta data"));
-
-        // Delete associated calorie entry
-        removeCalorieEntryForConsumption(consumption);
 
         // Delete consumption
         mealConsumptionRepository.delete(consumption);
@@ -308,29 +299,6 @@ public class MealService {
     }
 
     // Private helper methods
-
-    private void createCalorieEntryForConsumption(MealConsumption consumption, Meal meal) {
-        CalorieEntry calorieEntry = CalorieEntry.builder()
-                .user(consumption.getUser())
-                .date(consumption.getConsumptionDate())
-                .entryType(CalorieEntry.EntryType.MEAL)
-                .calories(meal.getTotalCalories())
-                .carbs(meal.getTotalCarbs())
-                .protein(meal.getTotalProtein())
-                .fat(meal.getTotalFat())
-                .meal(meal)
-                .description("Refeição: " + meal.getName())
-                .notes(consumption.getNotes())
-                .consumedAt(consumption.getConsumedAt())
-                .build();
-
-        calorieEntryRepository.save(calorieEntry);
-    }
-
-    private void removeCalorieEntryForConsumption(MealConsumption consumption) {
-        calorieEntryRepository.findByMealId(consumption.getMeal().getId())
-                .ifPresent(calorieEntryRepository::delete);
-    }
 
     private MealTemplateResponseDTO mapToTemplateResponseDTO(Meal meal, boolean isConsumedToday) {
         List<MealFoodResponseDTO> foodResponses = meal.getFoods().stream()
