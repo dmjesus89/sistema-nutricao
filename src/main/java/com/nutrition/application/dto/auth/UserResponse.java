@@ -33,5 +33,8 @@ public class UserResponse {
 
     @JsonProperty("createdAt")
     private String createdAt;
+
+    @JsonProperty("preferredLocale")
+    private String preferredLocale;
 }
 

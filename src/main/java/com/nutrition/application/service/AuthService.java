@@ -257,6 +257,6 @@ public class AuthService {
     }
 
     private UserResponse buildUserResponse(User user) {
-        return UserResponse.builder().id(user.getId()).firstName(user.getFirstName()).lastName(user.getLastName()).fullName(user.getFullName()).email(user.getEmail()).role(user.getRole().name()).emailConfirmed(user.getEmailConfirmed()).createdAt(user.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)).build();
+        return UserResponse.builder().id(user.getId()).firstName(user.getFirstName()).lastName(user.getLastName()).fullName(user.getFullName()).email(user.getEmail()).role(user.getRole().name()).emailConfirmed(user.getEmailConfirmed()).preferredLocale(user.getPreferredLocale()).createdAt(user.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)).build();
     }
 }
