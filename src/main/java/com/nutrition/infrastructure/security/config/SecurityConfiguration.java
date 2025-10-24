@@ -41,6 +41,9 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Public endpoints
+                        .requestMatchers("/").permitAll()  // ADD THIS LINE - Allow Render health checks
+                        .requestMatchers("/healthz").permitAll()
+                        // Public endpoints
                         .requestMatchers("/healthz").permitAll()  // Add this line
                         .requestMatchers("/api/v1/auth/register").permitAll()
                         .requestMatchers("/api/v1/auth/login").permitAll()
@@ -50,6 +53,9 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/v1/auth/reset-password").permitAll()
                         .requestMatchers("/api/v1/config/activity-levels").permitAll()
                         .requestMatchers("/api/v1/config/goals").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**").permitAll()
+                        .requestMatchers("/swagger-resources/**").permitAll()
                         // Admin endpoints
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
