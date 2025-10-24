@@ -637,9 +637,12 @@ public class SupplementService {
 
             return buildScheduleResponse(schedule);
 
+        } catch (UnprocessableEntityException e) {
+            // Re-throw our own business exceptions
+            throw e;
         } catch (Exception e) {
-            log.error("Error adding schedule: {}", e.getMessage());
-            throw new UnprocessableEntityException("Erro ao adicionar horário de dosagem");
+            log.error("Error adding schedule: {}", e.getMessage(), e);
+            throw new UnprocessableEntityException("Erro ao adicionar horário de dosagem: " + e.getMessage());
         }
     }
 
