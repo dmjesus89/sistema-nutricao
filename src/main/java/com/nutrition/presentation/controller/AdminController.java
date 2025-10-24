@@ -35,30 +35,30 @@ public class AdminController {
         Map<String, Object> response = adminService.getDashboardStats();
         return ResponseEntity.ok(response);
     }
-//
-//    @GetMapping("/stats/foods")
-//    @Operation(summary = "Estatísticas de alimentos", description = "Retorna estatísticas detalhadas sobre alimentos")
-//    public ResponseEntity<Map<String, Object>> getFoodStats() {
-//        log.info("Admin food stats request received");
-//        Map<String, Object> response = adminService.getFoodStatistics();
-//        return ResponseEntity.ok(response);
-//    }
-//
-//    @GetMapping("/stats/supplements")
-//    @Operation(summary = "Estatísticas de suplementos", description = "Retorna estatísticas detalhadas sobre suplementos")
-//    public ResponseEntity<Map<String, Object>> getSupplementStats() {
-//        log.info("Admin supplement stats request received");
-//        Map<String, Object> response = adminService.getSupplementStatistics();
-//        return ResponseEntity.ok(response);
-//    }
-//
-//    @GetMapping("/stats/users")
-//    @Operation(summary = "Estatísticas de usuários", description = "Retorna estatísticas sobre usuários e suas preferências")
-//    public ResponseEntity<Map<String, Object>> getUserStats() {
-//        log.info("Admin user stats request received");
-//        Map<String, Object> response = adminService.getUserStatistics();
-//        return ResponseEntity.ok(response);
-//    }
+
+    @GetMapping("/stats/foods")
+    @Operation(summary = "Estatísticas de alimentos", description = "Retorna estatísticas detalhadas sobre alimentos")
+    public ResponseEntity<Map<String, Object>> getFoodStats() {
+        log.info("Admin food stats request received");
+        Map<String, Object> response = adminService.getFoodStatistics();
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/stats/supplements")
+    @Operation(summary = "Estatísticas de suplementos", description = "Retorna estatísticas detalhadas sobre suplementos")
+    public ResponseEntity<Map<String, Object>> getSupplementStats() {
+        log.info("Admin supplement stats request received");
+        Map<String, Object> response = adminService.getSupplementStatistics();
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/stats/users")
+    @Operation(summary = "Estatísticas de usuários", description = "Retorna estatísticas sobre usuários e suas preferências")
+    public ResponseEntity<Map<String, Object>> getUserStats() {
+        log.info("Admin user stats request received");
+        Map<String, Object> response = adminService.getUserStatistics();
+        return ResponseEntity.ok(response);
+    }
 //
 //
 //    @PostMapping("/maintenance/cleanup")
