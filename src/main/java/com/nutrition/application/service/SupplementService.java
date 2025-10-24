@@ -428,6 +428,23 @@ public class SupplementService {
             log.info("Supplement added to tracking: {} for user {} with frequency {}",
                     supplement.getName(), currentUser.getEmail(), frequency);
 
+            // Handle schedules if provided (NEW: multiple doses per day)
+            if (request.getSchedules() != null && !request.getSchedules().isEmpty()) {
+                for (AddScheduleRequest scheduleRequest : request.getSchedules()) {
+                    java.time.LocalTime dosageTime = java.time.LocalTime.parse(scheduleRequest.getDosageTime());
+
+                    UserSupplementSchedule schedule = UserSupplementSchedule.builder()
+                            .userSupplement(userSupplement)
+                            .dosageTime(dosageTime)
+                            .label(scheduleRequest.getLabel())
+                            .build();
+
+                    userSupplementScheduleRepository.save(schedule);
+                    log.info("Schedule added: {} at {} for user supplement ID {}",
+                            scheduleRequest.getLabel(), scheduleRequest.getDosageTime(), userSupplement.getId());
+                }
+            }
+
             return buildUserSupplementResponse(userSupplement);
 
         } catch (UnprocessableEntityException e) {
@@ -587,6 +604,13 @@ public class SupplementService {
 
         SupplementResponse supplementResponse = buildSupplementResponse(supplement, userSupplement.getUser());
 
+        // Get schedules for this user supplement
+        List<ScheduleResponse> schedules = userSupplement.getSchedules() != null ?
+                userSupplement.getSchedules().stream()
+                        .map(this::buildScheduleResponse)
+                        .collect(Collectors.toList()) :
+                List.of();
+
         return UserSupplementResponse.builder()
                 .id(userSupplement.getId())
                 .supplement(supplementResponse)
@@ -600,6 +624,7 @@ public class SupplementService {
                 .lastTakenAt(userSupplement.getLastTakenAt())
                 .createdAt(userSupplement.getCreatedAt())
                 .updatedAt(userSupplement.getUpdatedAt())
+                .schedules(schedules)
                 .build();
     }
 

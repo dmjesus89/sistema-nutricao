@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Response DTO for user supplement tracking with frequency information
@@ -33,7 +34,8 @@ public class UserSupplementResponse {
     private String notes;
 
     @JsonProperty("dosageTime")
-    private String dosageTime; // HH:mm format
+    @Deprecated // Use schedules instead for multiple doses per day
+    private String dosageTime; // HH:mm format - kept for backward compatibility
 
     @JsonProperty("daysOfWeek")
     private String daysOfWeek;
@@ -49,4 +51,10 @@ public class UserSupplementResponse {
 
     @JsonProperty("updatedAt")
     private LocalDateTime updatedAt;
+
+    /**
+     * Multiple dosage schedules per day (NEW)
+     */
+    @JsonProperty("schedules")
+    private List<ScheduleResponse> schedules;
 }
