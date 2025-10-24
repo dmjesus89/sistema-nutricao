@@ -28,13 +28,13 @@ public class AdminController {
 
     private final AdminService adminService;
 
-//    @GetMapping("/dashboard")
-//    @Operation(summary = "Dashboard administrativo", description = "Retorna estatísticas gerais do sistema")
-//    public ResponseEntity<Map<String, Object>> getDashboard() {
-//        log.info("Admin dashboard request received");
-//        Map<String, Object> response = adminService.getDashboardStats();
-//        return ResponseEntity.ok(response);
-//    }
+    @GetMapping("/dashboard")
+    @Operation(summary = "Dashboard administrativo", description = "Retorna estatísticas gerais do sistema")
+    public ResponseEntity<Map<String, Object>> getDashboard() {
+        log.info("Admin dashboard request received");
+        Map<String, Object> response = adminService.getDashboardStats();
+        return ResponseEntity.ok(response);
+    }
 //
 //    @GetMapping("/stats/foods")
 //    @Operation(summary = "Estatísticas de alimentos", description = "Retorna estatísticas detalhadas sobre alimentos")
