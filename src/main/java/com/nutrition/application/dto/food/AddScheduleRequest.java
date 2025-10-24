@@ -1,5 +1,6 @@
 package com.nutrition.application.dto.food;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -16,8 +17,10 @@ public class AddScheduleRequest {
 
     @NotNull(message = "Dosage time is required")
     @Pattern(regexp = "^([01]\\d|2[0-3]):([0-5]\\d)$", message = "Dosage time must be in HH:mm format (e.g., 08:00)")
+    @JsonProperty("dosageTime")
     private String dosageTime;
 
     @Size(max = 50, message = "Label must not exceed 50 characters")
+    @JsonProperty("label")
     private String label; // e.g., "Morning", "Evening", "With lunch", "Before bed"
 }
