@@ -1,7 +1,7 @@
 package com.nutrition.application.service;
 
-import com.nutrition.domain.entity.food.UserSupplementPreference;
-import com.nutrition.infrastructure.repository.UserSupplementPreferenceRepository;
+import com.nutrition.domain.entity.food.UserSupplement;
+import com.nutrition.infrastructure.repository.UserSupplementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,7 +19,7 @@ import java.util.List;
 @Slf4j
 public class SupplementReminderScheduler {
 
-    private final UserSupplementPreferenceRepository preferenceRepository;
+    private final UserSupplementRepository userSupplementRepository;
     private final EmailService emailService;
 
     /**
@@ -35,17 +35,15 @@ public class SupplementReminderScheduler {
             LocalTime currentTime = now.toLocalTime();
             DayOfWeek currentDay = now.getDayOfWeek();
 
-            // Find all preferences with email reminders enabled
-            List<UserSupplementPreference> preferences = preferenceRepository
-                    .findByEmailReminderEnabledTrueAndPreferenceType(
-                            UserSupplementPreference.PreferenceType.CURRENTLY_USING
-                    );
+            // Find all user supplements with email reminders enabled
+            List<UserSupplement> userSupplements = userSupplementRepository
+                    .findByEmailReminderEnabledTrue();
 
-            log.info("Found {} supplement preferences with reminders enabled", preferences.size());
+            log.info("Found {} user supplements with reminders enabled", userSupplements.size());
 
-            for (UserSupplementPreference preference : preferences) {
-                if (shouldSendReminder(preference, currentTime, currentDay)) {
-                    queueSupplementReminder(preference);
+            for (UserSupplement userSupplement : userSupplements) {
+                if (shouldSendReminder(userSupplement, currentTime, currentDay)) {
+                    queueSupplementReminder(userSupplement);
                 }
             }
 
@@ -54,14 +52,14 @@ public class SupplementReminderScheduler {
         }
     }
 
-    private boolean shouldSendReminder(UserSupplementPreference preference, LocalTime currentTime, DayOfWeek currentDay) {
+    private boolean shouldSendReminder(UserSupplement userSupplement, LocalTime currentTime, DayOfWeek currentDay) {
         // Check if dosage time is set
-        if (preference.getDosageTime() == null) {
+        if (userSupplement.getDosageTime() == null) {
             return false;
         }
 
         // Check if current time is within 15 minutes of dosage time
-        LocalTime dosageTime = preference.getDosageTime();
+        LocalTime dosageTime = userSupplement.getDosageTime();
         long minutesDiff = Math.abs(java.time.Duration.between(currentTime, dosageTime).toMinutes());
 
         if (minutesDiff > 15) {
@@ -69,19 +67,14 @@ public class SupplementReminderScheduler {
         }
 
         // Check frequency
-        String frequency = preference.getFrequency();
-        if (frequency == null || frequency.equals("DAILY")) {
+        UserSupplement.Frequency frequency = userSupplement.getFrequency();
+        if (frequency == null || frequency == UserSupplement.Frequency.DAILY) {
             return true;
         }
 
-        if (frequency.equals("WEEKLY")) {
-            // Default to Monday for weekly
-            return currentDay == DayOfWeek.MONDAY;
-        }
-
-        if (frequency.equals("CUSTOM")) {
+        if (frequency == UserSupplement.Frequency.WEEKLY) {
             // Check if today is in the list of days
-            String daysOfWeek = preference.getDaysOfWeek();
+            String daysOfWeek = userSupplement.getDaysOfWeek();
             if (daysOfWeek != null && !daysOfWeek.isEmpty()) {
                 List<String> days = Arrays.asList(daysOfWeek.split(","));
                 return days.contains(currentDay.toString());
@@ -91,15 +84,15 @@ public class SupplementReminderScheduler {
         return false;
     }
 
-    private void queueSupplementReminder(UserSupplementPreference preference) {
+    private void queueSupplementReminder(UserSupplement userSupplement) {
         try {
-            String supplementName = preference.getSupplement().getName();
-            String userName = preference.getUser().getFirstName();
-            String userEmail = preference.getUser().getEmail();
-            String dosageTime = preference.getDosageTime() != null ?
-                    preference.getDosageTime().toString() : "N/A";
-            String recommendedDosage = preference.getSupplement().getRecommendedDosage() != null ?
-                    preference.getSupplement().getRecommendedDosage() : "Ver instruções";
+            String supplementName = userSupplement.getSupplement().getName();
+            String userName = userSupplement.getUser().getFirstName();
+            String userEmail = userSupplement.getUser().getEmail();
+            String dosageTime = userSupplement.getDosageTime() != null ?
+                    userSupplement.getDosageTime().toString() : "N/A";
+            String recommendedDosage = userSupplement.getSupplement().getRecommendedDosage() != null ?
+                    userSupplement.getSupplement().getRecommendedDosage() : "Ver instruções";
 
             emailService.sendSupplementReminderEmail(
                     userEmail,

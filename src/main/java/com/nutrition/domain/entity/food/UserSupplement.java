@@ -22,14 +22,18 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+/**
+ * Entity representing a user's supplement tracking with frequency and reminder settings.
+ * This replaces the old "preference" concept - users simply track supplements they're taking.
+ */
 @Entity
-@Table(name = "user_supplement_preferences",
+@Table(name = "user_supplements",
         uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "supplement_id"}))
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserSupplementPreference {
+public class UserSupplement {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,25 +48,25 @@ public class UserSupplementPreference {
     private Supplement supplement;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "preference_type", nullable = false)
-    private PreferenceType preferenceType;
+    @Column(name = "frequency", nullable = false)
+    @Builder.Default
+    private Frequency frequency = Frequency.DAILY;
 
     @Column(name = "notes", length = 500)
     private String notes;
 
-    // Time routine fields for email alerts
     @Column(name = "dosage_time")
     private LocalTime dosageTime; // Time of day to take the supplement
 
-    @Column(name = "frequency")
-    private String frequency; // DAILY, WEEKLY, MONTHLY
-
     @Column(name = "days_of_week", length = 100)
-    private String daysOfWeek; // Comma-separated days (e.g., "MONDAY,WEDNESDAY,FRIDAY")
+    private String daysOfWeek; // Comma-separated days for WEEKLY frequencies
 
     @Column(name = "email_reminder_enabled", nullable = false)
     @Builder.Default
     private Boolean emailReminderEnabled = false;
+
+    @Column(name = "last_taken_at")
+    private LocalDateTime lastTakenAt; // Track when user last took the supplement
 
     @Column(name = "created_at", nullable = false)
     @Builder.Default
@@ -76,13 +80,17 @@ public class UserSupplementPreference {
         updatedAt = LocalDateTime.now();
     }
 
-    public enum PreferenceType {
-        CURRENTLY_USING("Usando atualmente", "Suplemento em uso atual");
+    public enum Frequency {
+        DAILY("Diário", "Tomar todos os dias"),
+        WEEKLY("Semanal", "Tomar uma vez por semana"),
+        TWICE_WEEKLY("2x por semana", "Tomar duas vezes por semana"),
+        THREE_TIMES_WEEKLY("3x por semana", "Tomar três vezes por semana"),
+        MONTHLY("Mensal", "Tomar uma vez por mês");
 
         private final String displayName;
         private final String description;
 
-        PreferenceType(String displayName, String description) {
+        Frequency(String displayName, String description) {
             this.displayName = displayName;
             this.description = description;
         }
@@ -94,9 +102,12 @@ public class UserSupplementPreference {
         public String getDescription() {
             return description;
         }
+    }
 
-        public boolean isPositive() {
-            return this == CURRENTLY_USING;
-        }
+    /**
+     * Mark this supplement as taken at the current time
+     */
+    public void markAsTaken() {
+        this.lastTakenAt = LocalDateTime.now();
     }
 }

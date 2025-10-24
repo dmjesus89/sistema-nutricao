@@ -3,7 +3,7 @@ package com.nutrition.application.service;
 
 import com.nutrition.domain.entity.auth.User;
 import com.nutrition.domain.entity.food.UserFoodPreference;
-import com.nutrition.domain.entity.food.UserSupplementPreference;
+import com.nutrition.domain.entity.food.UserSupplement;
 import com.nutrition.domain.entity.profile.UserProfile;
 import com.nutrition.infrastructure.repository.EmailConfirmationTokenRepository;
 import com.nutrition.infrastructure.repository.FoodRepository;
@@ -13,7 +13,7 @@ import com.nutrition.infrastructure.repository.SupplementRepository;
 import com.nutrition.infrastructure.repository.UserFoodPreferenceRepository;
 import com.nutrition.infrastructure.repository.UserProfileRepository;
 import com.nutrition.infrastructure.repository.UserRepository;
-import com.nutrition.infrastructure.repository.UserSupplementPreferenceRepository;
+import com.nutrition.infrastructure.repository.UserSupplementRepository;
 import com.nutrition.infrastructure.repository.WeightHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,9 +40,9 @@ public class DashboardService {
         try {
             Map<String, Object> stats = new HashMap<>();
             stats.put("totalFoodPreferences", foodPreferenceRepository.findByUserAndPreferenceTypes(user, Arrays.stream(UserFoodPreference.PreferenceType.values()).toList()).size());
-            stats.put("totalSupplementPreferences", supplementRepository.findByUserAndPreferenceTypes(user, Arrays.stream(UserSupplementPreference.PreferenceType.values()).toList()).size());
+            stats.put("totalSupplementPreferences", 0); // DEPRECATED: Preference types removed
             stats.put("favoriteFoods", foodPreferenceRepository.findByUserAndPreferenceTypeFavorite(user).size());
-            stats.put("favoriteSupplements", supplementRepository.findByUserAndPreferenceTypeFavorite(user).size());
+            stats.put("favoriteSupplements", 0); // DEPRECATED: Preference types removed
             stats.put("currentSupplements", supplementRepository.findUserCurrentSupplements(user).size());
 
 

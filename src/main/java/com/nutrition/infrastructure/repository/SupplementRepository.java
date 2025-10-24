@@ -3,7 +3,7 @@ package com.nutrition.infrastructure.repository;
 import com.nutrition.domain.entity.auth.User;
 import com.nutrition.domain.entity.food.Supplement;
 import com.nutrition.domain.entity.food.UserFoodPreference;
-import com.nutrition.domain.entity.food.UserSupplementPreference;
+import com.nutrition.domain.entity.food.UserSupplement;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -168,71 +168,20 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
             "(s.caloriesPerServing IS NULL OR s.caloriesPerServing <= :maxCalories) ORDER BY s.name ASC")
     Page<Supplement> findLowCalorieSupplements(@Param("maxCalories") java.math.BigDecimal maxCalories, Pageable pageable);
 
-    // ========== USER PREFERENCE QUERIES ==========
+    // ========== USER SUPPLEMENT TRACKING QUERIES (DEPRECATED) ==========
 
-    @Query("SELECT s FROM Supplement s JOIN s.userPreferences up WHERE up.user = :user AND " +
-            "up.preferenceType IS NOT NULL AND s.active = true ORDER BY up.createdAt DESC")
-    List<Supplement> findUserWithPreferences(@Param("user") User user);
-
-    /**
-     * Find user's favorite supplements
-     */
-    @Query("SELECT s FROM Supplement s JOIN s.userPreferences up WHERE up.user = :user AND " +
-            "up.preferenceType = 'FAVORITE' AND s.active = true ORDER BY up.createdAt DESC")
-    List<Supplement> findUserFavorites(@Param("user") User user);
-
-    /**
-     * Find user's current supplements
-     */
-    @Query("SELECT s FROM Supplement s JOIN s.userPreferences up WHERE up.user = :user AND " +
-            "up.preferenceType = 'CURRENTLY_USING' AND s.active = true ORDER BY up.createdAt DESC")
-    List<Supplement> findUserCurrentSupplements(@Param("user") User user);
-
-    /**
-     * Find supplements user used before
-     */
-    @Query("SELECT s FROM Supplement s JOIN s.userPreferences up WHERE up.user = :user AND " +
-            "up.preferenceType = 'USED_BEFORE' AND s.active = true ORDER BY up.createdAt DESC")
-    List<Supplement> findUserPreviousSupplements(@Param("user") User user);
-
-    /**
-     * Find supplements user wants to try
-     */
-    @Query("SELECT s FROM Supplement s JOIN s.userPreferences up WHERE up.user = :user AND " +
-            "up.preferenceType = 'WANT_TO_TRY' AND s.active = true ORDER BY up.createdAt DESC")
-    List<Supplement> findUserWishlistSupplements(@Param("user") User user);
-
-    /**
-     * Find user's restricted supplements
-     */
-    @Query("SELECT s FROM Supplement s JOIN s.userPreferences up WHERE up.user = :user AND " +
-            "up.preferenceType IN ('RESTRICTION', 'NOT_SUITABLE') AND s.active = true ORDER BY s.name ASC")
-    List<Supplement> findUserRestrictions(@Param("user") User user);
-
-    /**
-     * Find suitable supplements for user (excluding restrictions)
-     */
-    @Query("SELECT DISTINCT s FROM Supplement s WHERE s.active = true AND s.id NOT IN " +
-            "(SELECT up.supplement.id FROM UserSupplementPreference up WHERE up.user = :user AND " +
-            "up.preferenceType IN ('RESTRICTION', 'NOT_SUITABLE')) " +
-            "ORDER BY s.name ASC")
-    Page<Supplement> findSuitableSupplementsForUser(@Param("user") User user, Pageable pageable);
-
-    /**
-     * Find recommended supplements for user (suitable + prioritize favorites and wishlist)
-     */
-    @Query("SELECT s FROM Supplement s " +
-            "WHERE s.active = true AND s.id NOT IN " +
-            "(SELECT up.supplement.id FROM UserSupplementPreference up WHERE up.user = :user AND " +
-            "up.preferenceType IN ('RESTRICTION', 'NOT_SUITABLE')) " +
-            "AND s.id IN (" +
-            "   SELECT DISTINCT s2.id FROM Supplement s2" +
-            ") " +
-            "ORDER BY CASE " +
-            "WHEN s.id IN (SELECT up2.supplement.id FROM UserSupplementPreference up2 WHERE up2.user = :user AND up2.preferenceType = 'FAVORITE') THEN 0 " +
-            "WHEN s.id IN (SELECT up3.supplement.id FROM UserSupplementPreference up3 WHERE up3.user = :user AND up3.preferenceType = 'WANT_TO_TRY') THEN 1 " +
-            "ELSE 2 END, s.name ASC")
-    Page<Supplement> findRecommendedSupplementsForUser(@Param("user") User user, Pageable pageable);
+    // DEPRECATED: All preference-based queries removed - use UserSupplementRepository for frequency-based tracking instead
+    // The following methods have been removed:
+    // - findUserWithPreferences()
+    // - findUserFavorites()
+    // - findUserCurrentSupplements()
+    // - findUserPreviousSupplements()
+    // - findUserWishlistSupplements()
+    // - findUserRestrictions()
+    // - findSuitableSupplementsForUser()
+    // - findRecommendedSupplementsForUser()
+    //
+    // Please use UserSupplementRepository methods instead for tracking user supplements with frequencies
 
     // ========== INGREDIENT QUERIES ==========
 
@@ -417,12 +366,6 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
     int bulkUpdateCategory(@Param("ids") List<Long> ids, @Param("category") Supplement.SupplementCategory category);
 
 
-    @Query("SELECT ufp FROM UserSupplementPreference ufp WHERE ufp.user = :user AND " +
-            "ufp.preferenceType IN :preferenceTypes ORDER BY ufp.createdAt DESC")
-    List<UserSupplementPreference> findByUserAndPreferenceTypes(@Param("user") User user,
-                                                                @Param("preferenceTypes") List<UserSupplementPreference.PreferenceType> preferenceTypes);
-
-    @Query("SELECT ufp FROM UserSupplementPreference ufp WHERE ufp.user = :user AND ufp.preferenceType = 'FAVORITE'")
-    Collection<UserSupplementPreference> findByUserAndPreferenceTypeFavorite(@Param("user") User user);
+    // DEPRECATED: Preference-based methods removed - use UserSupplementRepository for frequency-based tracking
 
 }

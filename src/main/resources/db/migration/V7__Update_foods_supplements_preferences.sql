@@ -12,13 +12,9 @@ ALTER TABLE foods DROP COLUMN IF EXISTS verified;
 ALTER TABLE supplements DROP COLUMN IF EXISTS verified;
 
 -- ============================================================================
--- 3. Add time routine fields to user_supplement_preferences table
+-- 3. user_supplements table structure is already correct in V1 (no changes needed)
 -- ============================================================================
-ALTER TABLE user_supplement_preferences
-    ADD COLUMN IF NOT EXISTS dosage_time TIME,
-    ADD COLUMN IF NOT EXISTS frequency VARCHAR(20),
-    ADD COLUMN IF NOT EXISTS days_of_week VARCHAR(100),
-    ADD COLUMN IF NOT EXISTS email_reminder_enabled BOOLEAN DEFAULT FALSE NOT NULL;
+-- Skipping - user_supplements table created with correct structure in V1
 
 -- ============================================================================
 -- 4. Clean up old food preference types (keep only FAVORITE)
@@ -28,11 +24,9 @@ DELETE FROM user_food_preferences
 WHERE preference_type NOT IN ('FAVORITE');
 
 -- ============================================================================
--- 5. Clean up old supplement preference types (keep only CURRENTLY_USING)
+-- 5. user_supplements no longer has preference_type (frequency-based model)
 -- ============================================================================
--- Delete preferences that are not CURRENTLY_USING
-DELETE FROM user_supplement_preferences
-WHERE preference_type NOT IN ('CURRENTLY_USING');
+-- Skipping - preference_type removed in new model
 
 -- ============================================================================
 -- 6. Add SUPPLEMENT_REMINDER to email_queue if email_type enum exists
@@ -44,15 +38,9 @@ WHERE preference_type NOT IN ('CURRENTLY_USING');
 -- For other databases or if using VARCHAR, no action needed as the enum is in Java
 
 -- ============================================================================
--- 7. Add indexes for performance on new columns
+-- 7. Indexes already created in V1 for user_supplements
 -- ============================================================================
-CREATE INDEX IF NOT EXISTS idx_supplement_pref_email_reminder
-    ON user_supplement_preferences(email_reminder_enabled)
-    WHERE email_reminder_enabled = TRUE;
-
-CREATE INDEX IF NOT EXISTS idx_supplement_pref_dosage_time
-    ON user_supplement_preferences(dosage_time)
-    WHERE dosage_time IS NOT NULL;
+-- Skipping - indexes already created in V1
 
 -- ============================================================================
 -- Migration complete

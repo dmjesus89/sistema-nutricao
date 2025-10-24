@@ -248,26 +248,35 @@ CREATE TABLE user_food_preferences
 -- Create index for user food preferences
 CREATE INDEX idx_user_food_preferences_user_type ON user_food_preferences (user_id, preference_type);
 
--- Create User Supplement Preferences Table
-CREATE TABLE user_supplement_preferences
+-- Create User Supplements Table (frequency-based tracking)
+CREATE TABLE user_supplements
 (
-    id              BIGSERIAL PRIMARY KEY,
-    user_id         BIGINT      NOT NULL,
-    supplement_id   BIGINT      NOT NULL,
-    preference_type VARCHAR(20) NOT NULL,
-    notes           VARCHAR(500),
-    created_at      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP,
-    CONSTRAINT fk_user_supplement_preferences_user
+    id                      BIGSERIAL PRIMARY KEY,
+    user_id                 BIGINT       NOT NULL,
+    supplement_id           BIGINT       NOT NULL,
+    frequency               VARCHAR(30)  NOT NULL DEFAULT 'DAILY',
+    notes                   VARCHAR(500),
+    dosage_time             TIME,
+    days_of_week            VARCHAR(100),
+    email_reminder_enabled  BOOLEAN      NOT NULL DEFAULT FALSE,
+    last_taken_at           TIMESTAMP,
+    created_at              TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at              TIMESTAMP,
+    CONSTRAINT fk_user_supplements_user
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    CONSTRAINT fk_user_supplement_preferences_supplement
+    CONSTRAINT fk_user_supplements_supplement
         FOREIGN KEY (supplement_id) REFERENCES supplements (id) ON DELETE CASCADE,
-    CONSTRAINT uk_user_supplement_preferences
-        UNIQUE (user_id, supplement_id)
+    CONSTRAINT uk_user_supplements
+        UNIQUE (user_id, supplement_id),
+    CONSTRAINT chk_user_supplements_frequency
+        CHECK (frequency IN ('DAILY', 'WEEKLY', 'TWICE_WEEKLY', 'THREE_TIMES_WEEKLY', 'MONTHLY'))
 );
 
--- Create index for user supplement preferences
-CREATE INDEX idx_user_supplement_preferences_user_type ON user_supplement_preferences (user_id, preference_type);
+-- Create indexes for user supplements
+CREATE INDEX idx_user_supplements_user ON user_supplements (user_id);
+CREATE INDEX idx_user_supplements_frequency ON user_supplements (frequency);
+CREATE INDEX idx_user_supplements_reminder ON user_supplements (email_reminder_enabled, dosage_time) WHERE email_reminder_enabled = true;
+CREATE INDEX idx_user_supplements_last_taken ON user_supplements (user_id, last_taken_at);
 
 -- Create User Dietary Restrictions Table
 CREATE TABLE user_dietary_restrictions

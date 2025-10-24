@@ -1,16 +1,19 @@
 package com.nutrition.application.service;
 
+import com.nutrition.application.dto.food.AddSupplementRequest;
 import com.nutrition.application.dto.food.CreateSupplementRequest;
 import com.nutrition.application.dto.food.SupplementResponse;
 import com.nutrition.application.dto.food.TimeRoutineRequest;
+import com.nutrition.application.dto.food.UpdateSupplementFrequencyRequest;
 import com.nutrition.application.dto.food.UserPreferenceRequest;
+import com.nutrition.application.dto.food.UserSupplementResponse;
 import com.nutrition.domain.entity.auth.User;
 import com.nutrition.domain.entity.food.Supplement;
-import com.nutrition.domain.entity.food.UserSupplementPreference;
+import com.nutrition.domain.entity.food.UserSupplement;
 import com.nutrition.infrastructure.exception.UnprocessableEntityException;
 import com.nutrition.infrastructure.repository.SupplementRepository;
 import com.nutrition.infrastructure.repository.UserRepository;
-import com.nutrition.infrastructure.repository.UserSupplementPreferenceRepository;
+import com.nutrition.infrastructure.repository.UserSupplementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,7 +36,7 @@ import java.util.stream.Collectors;
 public class SupplementService {
 
     private final SupplementRepository supplementRepository;
-    private final UserSupplementPreferenceRepository preferenceRepository;
+    private final UserSupplementRepository userSupplementRepository;
     private final UserRepository userRepository;
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -211,166 +214,18 @@ public class SupplementService {
         }
     }
 
-    @Transactional
-    public void setSupplementPreference(Long supplementId, UserPreferenceRequest request) {
-        try {
-            User currentUser = getCurrentUser();
-
-            Supplement supplement = supplementRepository.findByIdAndActiveTrue(supplementId)
-                    .orElse(null);
-
-            if (supplement == null) {
-                throw new UnprocessableEntityException("Suplemento não encontrado");
-            }
-
-            UserSupplementPreference.PreferenceType preferenceType = parseSupplementPreferenceType(request.getPreferenceType());
-
-            // Verificar se já existe preferência
-            UserSupplementPreference existingPreference = preferenceRepository.findByUserAndSupplement(currentUser, supplement)
-                    .orElse(null);
-
-            if (existingPreference != null) {
-                // Atualizar preferência existente
-                existingPreference.setPreferenceType(preferenceType);
-                existingPreference.setNotes(request.getNotes());
-                preferenceRepository.save(existingPreference);
-
-                log.info("Supplement preference updated: {} for supplement {} by user {}",
-                        preferenceType, supplement.getName(), currentUser.getEmail());
-            } else {
-                // Criar nova preferência
-                UserSupplementPreference newPreference = UserSupplementPreference.builder()
-                        .user(currentUser)
-                        .supplement(supplement)
-                        .preferenceType(preferenceType)
-                        .notes(request.getNotes())
-                        .build();
-
-                preferenceRepository.save(newPreference);
-
-                log.info("Supplement preference created: {} for supplement {} by user {}",
-                        preferenceType, supplement.getName(), currentUser.getEmail());
-            }
-
-        } catch (IllegalArgumentException e) {
-            throw new UnprocessableEntityException(e.getMessage());
-        } catch (Exception e) {
-            log.error("Error setting supplement preference: {}", e.getMessage());
-            throw new UnprocessableEntityException("Erro interno do servidor");
-        }
-    }
-
-    @Transactional
-    public void removeSupplementPreference(Long supplementId) {
-        try {
-            User currentUser = getCurrentUser();
-
-            Supplement supplement = supplementRepository.findByIdAndActiveTrue(supplementId)
-                    .orElse(null);
-
-            if (supplement == null) {
-                throw new UnprocessableEntityException("Suplemento não encontrado");
-            }
-
-            preferenceRepository.deleteByUserAndSupplement(currentUser, supplement);
-
-            log.info("Supplement preference removed for supplement {} by user {}",
-                    supplement.getName(), currentUser.getEmail());
-
-        } catch (Exception e) {
-            log.error("Error removing supplement preference: {}", e.getMessage());
-            throw new UnprocessableEntityException("Erro interno do servidor");
-        }
-    }
-
-    @Transactional
-    public SupplementResponse updateTimeRoutine(Long supplementId, TimeRoutineRequest request) {
-        try {
-            User currentUser = getCurrentUser();
-
-            Supplement supplement = supplementRepository.findByIdAndActiveTrue(supplementId)
-                    .orElseThrow(() -> new UnprocessableEntityException("Suplemento não encontrado"));
-
-            // Find the user's preference for this supplement
-            UserSupplementPreference preference = preferenceRepository.findByUserAndSupplement(currentUser, supplement)
-                    .orElseThrow(() -> new UnprocessableEntityException(
-                            "Você precisa marcar o suplemento como 'em uso' antes de definir uma rotina"));
-
-            // Verify it's marked as CURRENTLY_USING
-            if (preference.getPreferenceType() != UserSupplementPreference.PreferenceType.CURRENTLY_USING) {
-                throw new UnprocessableEntityException(
-                        "Rotina de horário só pode ser definida para suplementos em uso atual");
-            }
-
-            // Update the time routine fields
-            preference.setDosageTime(java.time.LocalTime.parse(request.getDosageTime()));
-            preference.setFrequency(request.getFrequency());
-            preference.setDaysOfWeek(request.getDaysOfWeek());
-            preference.setEmailReminderEnabled(request.getEmailReminderEnabled());
-
-            preferenceRepository.save(preference);
-
-            log.info("Time routine updated for supplement {} by user {}",
-                    supplement.getName(), currentUser.getEmail());
-
-            return buildSupplementResponse(supplement, currentUser);
-
-        } catch (UnprocessableEntityException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Error updating time routine: {}", e.getMessage(), e);
-            throw new UnprocessableEntityException("Erro ao atualizar rotina de horário");
-        }
-    }
-
-    public List<SupplementResponse> getUserFavorites() {
-        try {
-            User currentUser = getCurrentUser();
-
-            List<Supplement> favorites = supplementRepository.findUserFavorites(currentUser);
-            return favorites.stream()
-                    .map(supplement -> buildSupplementResponse(supplement, currentUser))
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.error("Error getting user favorites: {}", e.getMessage());
-            throw new UnprocessableEntityException("Erro interno do servidor");
-        }
-    }
-
-    public List<SupplementResponse> getCurrentSupplements() {
-        try {
-            User currentUser = getCurrentUser();
-
-            List<Supplement> currentSupplements = supplementRepository.findUserCurrentSupplements(currentUser);
-            return currentSupplements.stream()
-                    .map(supplement -> buildSupplementResponse(supplement, currentUser))
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.error("Error getting current supplements: {}", e.getMessage());
-            throw new UnprocessableEntityException("Erro interno do servidor");
-        }
-    }
-
-    public List<SupplementResponse> getUserWishlist() {
-        try {
-            User currentUser = getCurrentUser();
-
-            List<Supplement> wishlist = supplementRepository.findUserWishlistSupplements(currentUser);
-            return wishlist.stream()
-                    .map(supplement -> buildSupplementResponse(supplement, currentUser))
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.error("Error getting user wishlist: {}", e.getMessage());
-            throw new UnprocessableEntityException("Erro interno do servidor");
-        }
-    }
+    // ========== DEPRECATED METHODS - Removed in favor of frequency-based tracking ==========
+    // Old preference-based methods are no longer needed.
+    // Use the new methods: addSupplement(), updateSupplementFrequency(), removeSupplement(), etc.
 
     public Page<SupplementResponse> getRecommendedSupplements(int page, int size) {
         try {
             User currentUser = getCurrentUser();
 
+            // DEPRECATED: Preference-based recommendations removed
+            // Returning all active supplements instead
             Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
-            Page<Supplement> recommendations = supplementRepository.findRecommendedSupplementsForUser(currentUser, pageable);
+            Page<Supplement> recommendations = supplementRepository.findByActiveTrueOrderByNameAsc(pageable);
 
             return recommendations.map(supplement -> buildSupplementResponse(supplement, currentUser));
         } catch (Exception e) {
@@ -463,14 +318,7 @@ public class SupplementService {
         }
     }
 
-    private UserSupplementPreference.PreferenceType parseSupplementPreferenceType(String preferenceType) {
-        try {
-            return UserSupplementPreference.PreferenceType.valueOf(preferenceType.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Tipo de preferência inválido: " + preferenceType +
-                    ". Tipos válidos: " + String.join(", ", getValidPreferenceTypes()));
-        }
-    }
+    // DEPRECATED: parseSupplementPreferenceType removed - use frequency-based tracking instead
 
     private boolean hasAdvancedFilters(String category, String form, String brand, Boolean verified) {
         return category != null || form != null || brand != null || verified != null;
@@ -495,23 +343,10 @@ public class SupplementService {
                 .toArray(String[]::new);
     }
 
-    private String[] getValidPreferenceTypes() {
-        return java.util.Arrays.stream(UserSupplementPreference.PreferenceType.values())
-                .map(Enum::name)
-                .toArray(String[]::new);
-    }
+    // DEPRECATED: getValidPreferenceTypes removed - use frequency-based tracking instead
 
     private SupplementResponse buildSupplementResponse(Supplement supplement, User currentUser) {
-        // Buscar preferência do usuário se logado
-        String userPreference = null;
-        if (currentUser != null) {
-            UserSupplementPreference preference = preferenceRepository.findByUserAndSupplement(currentUser, supplement)
-                    .orElse(null);
-            if (preference != null) {
-                userPreference = preference.getPreferenceType().name();
-            }
-        }
-
+        // Note: userPreference field removed - use frequency-based tracking instead
         return SupplementResponse.builder()
                 .id(supplement.getId())
                 .name(supplement.getName())
@@ -539,7 +374,7 @@ public class SupplementService {
                 .regulatoryInfo(supplement.getRegulatoryInfo())
                 .displayName(supplement.getDisplayName())
                 .hasNutritionalValue(supplement.hasNutritionalValue())
-                .userPreference(userPreference)
+                .userPreference(null)  // DEPRECATED: Always null now
                 .createdAt(supplement.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                 .updatedAt(supplement.getUpdatedAt() != null ?
                         supplement.getUpdatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null)
@@ -547,17 +382,218 @@ public class SupplementService {
     }
 
 
-    public List<SupplementResponse> getUserPreferences() {
+    // DEPRECATED: getUserPreferences removed - use getUserSupplements() instead for frequency-based tracking
+
+    // ========== NEW SUPPLEMENT TRACKING METHODS (Frequency-based) ==========
+
+    /**
+     * Add a supplement to user's tracking list with frequency settings
+     */
+    @Transactional
+    public UserSupplementResponse addSupplement(Long supplementId, AddSupplementRequest request) {
         try {
             User currentUser = getCurrentUser();
 
-            List<Supplement> preferences = supplementRepository.findUserWithPreferences(currentUser);
-            return preferences.stream()
-                    .map(preference -> buildSupplementResponse(preference, currentUser))
-                    .collect(Collectors.toList());
+            Supplement supplement = supplementRepository.findByIdAndActiveTrue(supplementId)
+                    .orElseThrow(() -> new UnprocessableEntityException("Suplemento não encontrado"));
+
+            // Check if already exists
+            if (userSupplementRepository.existsByUserAndSupplement(currentUser, supplement)) {
+                throw new UnprocessableEntityException("Este suplemento já está na sua lista");
+            }
+
+            // Parse frequency
+            UserSupplement.Frequency frequency = parseFrequency(request.getFrequency());
+
+            // Create user supplement
+            UserSupplement userSupplement = UserSupplement.builder()
+                    .user(currentUser)
+                    .supplement(supplement)
+                    .frequency(frequency)
+                    .notes(request.getNotes())
+                    .dosageTime(request.getDosageTime() != null ?
+                            java.time.LocalTime.parse(request.getDosageTime()) : null)
+                    .daysOfWeek(request.getDaysOfWeek())
+                    .emailReminderEnabled(request.getEmailReminderEnabled())
+                    .build();
+
+            userSupplement = userSupplementRepository.save(userSupplement);
+
+            log.info("Supplement added to tracking: {} for user {} with frequency {}",
+                    supplement.getName(), currentUser.getEmail(), frequency);
+
+            return buildUserSupplementResponse(userSupplement);
+
+        } catch (UnprocessableEntityException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Error getting user preferences: {}", e.getMessage());
-            throw new UnprocessableEntityException("Erro interno do servidor");
+            log.error("Error adding supplement to tracking: {}", e.getMessage(), e);
+            throw new UnprocessableEntityException("Erro ao adicionar suplemento");
         }
+    }
+
+    /**
+     * Update supplement frequency and reminder settings
+     */
+    @Transactional
+    public UserSupplementResponse updateSupplementFrequency(Long supplementId, UpdateSupplementFrequencyRequest request) {
+        try {
+            User currentUser = getCurrentUser();
+
+            Supplement supplement = supplementRepository.findByIdAndActiveTrue(supplementId)
+                    .orElseThrow(() -> new UnprocessableEntityException("Suplemento não encontrado"));
+
+            UserSupplement userSupplement = userSupplementRepository.findByUserAndSupplement(currentUser, supplement)
+                    .orElseThrow(() -> new UnprocessableEntityException(
+                            "Suplemento não está na sua lista de acompanhamento"));
+
+            // Update fields
+            userSupplement.setFrequency(parseFrequency(request.getFrequency()));
+            userSupplement.setNotes(request.getNotes());
+            userSupplement.setDosageTime(request.getDosageTime() != null ?
+                    java.time.LocalTime.parse(request.getDosageTime()) : null);
+            userSupplement.setDaysOfWeek(request.getDaysOfWeek());
+            userSupplement.setEmailReminderEnabled(request.getEmailReminderEnabled());
+
+            userSupplement = userSupplementRepository.save(userSupplement);
+
+            log.info("Supplement frequency updated: {} for user {}",
+                    supplement.getName(), currentUser.getEmail());
+
+            return buildUserSupplementResponse(userSupplement);
+
+        } catch (UnprocessableEntityException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error updating supplement frequency: {}", e.getMessage(), e);
+            throw new UnprocessableEntityException("Erro ao atualizar frequência do suplemento");
+        }
+    }
+
+    /**
+     * Remove supplement from tracking
+     */
+    @Transactional
+    public void removeSupplement(Long supplementId) {
+        try {
+            User currentUser = getCurrentUser();
+
+            Supplement supplement = supplementRepository.findByIdAndActiveTrue(supplementId)
+                    .orElseThrow(() -> new UnprocessableEntityException("Suplemento não encontrado"));
+
+            userSupplementRepository.deleteByUserAndSupplement(currentUser, supplement);
+
+            log.info("Supplement removed from tracking: {} by user {}",
+                    supplement.getName(), currentUser.getEmail());
+
+        } catch (UnprocessableEntityException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error removing supplement from tracking: {}", e.getMessage(), e);
+            throw new UnprocessableEntityException("Erro ao remover suplemento");
+        }
+    }
+
+    /**
+     * Mark supplement as taken (updates lastTakenAt timestamp)
+     */
+    @Transactional
+    public UserSupplementResponse markSupplementAsTaken(Long supplementId) {
+        try {
+            User currentUser = getCurrentUser();
+
+            Supplement supplement = supplementRepository.findByIdAndActiveTrue(supplementId)
+                    .orElseThrow(() -> new UnprocessableEntityException("Suplemento não encontrado"));
+
+            UserSupplement userSupplement = userSupplementRepository.findByUserAndSupplement(currentUser, supplement)
+                    .orElseThrow(() -> new UnprocessableEntityException(
+                            "Suplemento não está na sua lista de acompanhamento"));
+
+            userSupplement.markAsTaken();
+            userSupplement = userSupplementRepository.save(userSupplement);
+
+            log.info("Supplement marked as taken: {} by user {}",
+                    supplement.getName(), currentUser.getEmail());
+
+            return buildUserSupplementResponse(userSupplement);
+
+        } catch (UnprocessableEntityException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error marking supplement as taken: {}", e.getMessage(), e);
+            throw new UnprocessableEntityException("Erro ao marcar suplemento como tomado");
+        }
+    }
+
+    /**
+     * Get all user's tracked supplements
+     */
+    public List<UserSupplementResponse> getUserSupplements() {
+        try {
+            User currentUser = getCurrentUser();
+
+            List<UserSupplement> userSupplements = userSupplementRepository.findByUserWithSupplementDetails(currentUser);
+
+            return userSupplements.stream()
+                    .map(this::buildUserSupplementResponse)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.error("Error getting user supplements: {}", e.getMessage());
+            throw new UnprocessableEntityException("Erro ao buscar suplementos");
+        }
+    }
+
+    /**
+     * Get user's supplements filtered by frequency
+     */
+    public List<UserSupplementResponse> getUserSupplementsByFrequency(String frequencyStr) {
+        try {
+            User currentUser = getCurrentUser();
+            UserSupplement.Frequency frequency = parseFrequency(frequencyStr);
+
+            List<UserSupplement> userSupplements = userSupplementRepository
+                    .findByUserAndFrequencyWithDetails(currentUser, frequency);
+
+            return userSupplements.stream()
+                    .map(this::buildUserSupplementResponse)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.error("Error getting user supplements by frequency: {}", e.getMessage());
+            throw new UnprocessableEntityException("Erro ao buscar suplementos por frequência");
+        }
+    }
+
+    // ========== NEW HELPER METHODS ==========
+
+    private UserSupplement.Frequency parseFrequency(String frequency) {
+        try {
+            return UserSupplement.Frequency.valueOf(frequency.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Frequência inválida: " + frequency +
+                    ". Frequências válidas: DAILY, WEEKLY, TWICE_WEEKLY, THREE_TIMES_WEEKLY, MONTHLY");
+        }
+    }
+
+    private UserSupplementResponse buildUserSupplementResponse(UserSupplement userSupplement) {
+        Supplement supplement = userSupplement.getSupplement();
+
+        SupplementResponse supplementResponse = buildSupplementResponse(supplement, userSupplement.getUser());
+
+        return UserSupplementResponse.builder()
+                .id(userSupplement.getId())
+                .supplement(supplementResponse)
+                .frequency(userSupplement.getFrequency().name())
+                .frequencyDisplay(userSupplement.getFrequency().getDisplayName())
+                .notes(userSupplement.getNotes())
+                .dosageTime(userSupplement.getDosageTime() != null ?
+                        userSupplement.getDosageTime().toString() : null)
+                .daysOfWeek(userSupplement.getDaysOfWeek())
+                .emailReminderEnabled(userSupplement.getEmailReminderEnabled())
+                .lastTakenAt(userSupplement.getLastTakenAt())
+                .createdAt(userSupplement.getCreatedAt())
+                .updatedAt(userSupplement.getUpdatedAt())
+                .build();
     }
 }

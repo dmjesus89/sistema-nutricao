@@ -1,10 +1,13 @@
 package com.nutrition.presentation.controller;
 
+import com.nutrition.application.dto.food.AddSupplementRequest;
 import com.nutrition.application.dto.food.CreateSupplementRequest;
 import com.nutrition.application.dto.food.FoodResponse;
 import com.nutrition.application.dto.food.SupplementResponse;
 import com.nutrition.application.dto.food.TimeRoutineRequest;
+import com.nutrition.application.dto.food.UpdateSupplementFrequencyRequest;
 import com.nutrition.application.dto.food.UserPreferenceRequest;
+import com.nutrition.application.dto.food.UserSupplementResponse;
 import com.nutrition.application.service.SupplementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -87,64 +90,14 @@ public class SupplementController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{id}/preference")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Definir preferência", description = "Define preferência do usuário para um suplemento")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public void setSupplementPreference(
-            @Parameter(description = "ID do suplemento") @PathVariable Long id,
-            @Valid @RequestBody UserPreferenceRequest request) {
-        log.info("Set supplement preference request for supplement ID: {}", id);
-        supplementService.setSupplementPreference(id, request);
-    }
-
-    @DeleteMapping("/{id}/preference")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Remover preferência", description = "Remove preferência do usuário para um suplemento")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public void removeSupplementPreference(
-            @Parameter(description = "ID do suplemento") @PathVariable Long id) {
-        log.info("Remove supplement preference request for supplement ID: {}", id);
-        supplementService.removeSupplementPreference(id);
-    }
-
-    @PutMapping("/{id}/time-routine")
-    @Operation(summary = "Atualizar rotina de horário", description = "Atualiza a rotina de horário para um suplemento em uso")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<SupplementResponse> updateTimeRoutine(
-            @Parameter(description = "ID do suplemento") @PathVariable Long id,
-            @Valid @RequestBody TimeRoutineRequest request) {
-        log.info("Update time routine request for supplement ID: {}", id);
-        SupplementResponse response = supplementService.updateTimeRoutine(id, request);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/favorites")
-    @Operation(summary = "Suplementos favoritos", description = "Lista suplementos favoritos do usuário atual")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<List<SupplementResponse>> getUserFavorites() {
-        log.info("Get user favorites request");
-        List<SupplementResponse> response = supplementService.getUserFavorites();
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/preferences")
-    @Operation(summary = "Alimentos com preferencias ou não", description = "Lista alimentos com preferencias do usuário atual")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<List<SupplementResponse>> getUserPreferences() {
-        log.info("Get user preferences request");
-        List<SupplementResponse> response = supplementService.getUserPreferences();
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/current")
-    @Operation(summary = "Suplementos atuais", description = "Lista suplementos em uso atual pelo usuário")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<List<SupplementResponse>> getCurrentSupplements() {
-        log.info("Get current supplements request");
-        List<SupplementResponse> response = supplementService.getCurrentSupplements();
-        return ResponseEntity.ok(response);
-    }
+    // ========== DEPRECATED ENDPOINTS - Removed in favor of frequency-based tracking ==========
+    // Old preference-based endpoints removed:
+    // - POST /{id}/preference (use POST /{id}/track instead)
+    // - DELETE /{id}/preference (use DELETE /{id}/track instead)
+    // - PUT /{id}/time-routine (use PUT /{id}/frequency instead)
+    // - GET /favorites (no direct replacement - preferences concept removed)
+    // - GET /preferences (use GET /my-supplements instead)
+    // - GET /current (use GET /my-supplements instead)
 
     @GetMapping("/recommended")
     @Operation(summary = "Suplementos recomendados", description = "Lista suplementos recomendados baseados nas preferências do usuário")
@@ -174,5 +127,75 @@ public class SupplementController {
     public void deleteSupplement(@Parameter(description = "ID do suplemento") @PathVariable Long id) {
         log.info("Delete supplement request for ID: {}", id);
         supplementService.deleteSupplement(id);
+    }
+
+    // ========== NEW SUPPLEMENT TRACKING ENDPOINTS (Frequency-based) ==========
+
+    @PostMapping("/{id}/track")
+    @Operation(summary = "Adicionar suplemento ao acompanhamento",
+               description = "Adiciona um suplemento à lista de acompanhamento do usuário com configurações de frequência")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<UserSupplementResponse> addSupplementTracking(
+            @Parameter(description = "ID do suplemento") @PathVariable Long id,
+            @Valid @RequestBody AddSupplementRequest request) {
+        log.info("Add supplement tracking request for supplement ID: {}", id);
+        UserSupplementResponse response = supplementService.addSupplement(id, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}/frequency")
+    @Operation(summary = "Atualizar frequência do suplemento",
+               description = "Atualiza a frequência e configurações de lembretes de um suplemento")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<UserSupplementResponse> updateSupplementFrequency(
+            @Parameter(description = "ID do suplemento") @PathVariable Long id,
+            @Valid @RequestBody UpdateSupplementFrequencyRequest request) {
+        log.info("Update supplement frequency request for supplement ID: {}", id);
+        UserSupplementResponse response = supplementService.updateSupplementFrequency(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}/track")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Remover suplemento do acompanhamento",
+               description = "Remove um suplemento da lista de acompanhamento do usuário")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public void removeSupplementTracking(
+            @Parameter(description = "ID do suplemento") @PathVariable Long id) {
+        log.info("Remove supplement tracking request for supplement ID: {}", id);
+        supplementService.removeSupplement(id);
+    }
+
+    @PostMapping("/{id}/mark-taken")
+    @Operation(summary = "Marcar suplemento como tomado",
+               description = "Registra que o usuário tomou o suplemento agora")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<UserSupplementResponse> markSupplementAsTaken(
+            @Parameter(description = "ID do suplemento") @PathVariable Long id) {
+        log.info("Mark supplement as taken request for supplement ID: {}", id);
+        UserSupplementResponse response = supplementService.markSupplementAsTaken(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/my-supplements")
+    @Operation(summary = "Meus suplementos",
+               description = "Lista todos os suplementos que o usuário está acompanhando")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<List<UserSupplementResponse>> getUserSupplements() {
+        log.info("Get user supplements request");
+        List<UserSupplementResponse> response = supplementService.getUserSupplements();
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/my-supplements/by-frequency/{frequency}")
+    @Operation(summary = "Meus suplementos por frequência",
+               description = "Lista suplementos do usuário filtrados por frequência (DAILY, WEEKLY, TWICE_WEEKLY, THREE_TIMES_WEEKLY, MONTHLY)")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<List<UserSupplementResponse>> getUserSupplementsByFrequency(
+            @Parameter(description = "Frequência (DAILY, WEEKLY, TWICE_WEEKLY, THREE_TIMES_WEEKLY, MONTHLY)")
+            @PathVariable String frequency) {
+        log.info("Get user supplements by frequency request: {}", frequency);
+        List<UserSupplementResponse> response = supplementService.getUserSupplementsByFrequency(frequency);
+        return ResponseEntity.ok(response);
     }
 }

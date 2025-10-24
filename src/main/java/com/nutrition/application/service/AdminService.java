@@ -9,7 +9,7 @@ import com.nutrition.infrastructure.repository.SupplementRepository;
 import com.nutrition.infrastructure.repository.UserFoodPreferenceRepository;
 import com.nutrition.infrastructure.repository.UserProfileRepository;
 import com.nutrition.infrastructure.repository.UserRepository;
-import com.nutrition.infrastructure.repository.UserSupplementPreferenceRepository;
+import com.nutrition.infrastructure.repository.UserSupplementRepository;
 import com.nutrition.infrastructure.repository.WeightHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +31,7 @@ public class AdminService {
     private final FoodRepository foodRepository;
     private final SupplementRepository supplementRepository;
     private final UserFoodPreferenceRepository foodPreferenceRepository;
-    private final UserSupplementPreferenceRepository supplementPreferenceRepository;
+    private final UserSupplementRepository userSupplementRepository;
     private final WeightHistoryRepository weightHistoryRepository;
     private final EmailConfirmationTokenRepository confirmationTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -56,7 +56,7 @@ public class AdminService {
 
             // Estatísticas de preferências
             stats.put("food_preferences", foodPreferenceRepository.count());
-            stats.put("supplement_preferences", supplementPreferenceRepository.count());
+            stats.put("supplement_preferences", userSupplementRepository.count()); // Updated to use frequency-based tracking
 
             // Estatísticas de peso
             stats.put("weight_records", weightHistoryRepository.count());

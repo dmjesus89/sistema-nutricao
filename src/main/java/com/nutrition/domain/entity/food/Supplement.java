@@ -110,10 +110,7 @@ public class Supplement {
         updatedAt = LocalDateTime.now();
     }
 
-    // Relacionamentos
-    @OneToMany(mappedBy = "supplement", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<UserSupplementPreference> userPreferences = new ArrayList<>();
+    // Relacionamentos - DEPRECATED: userPreferences removed, use UserSupplement entity for frequency-based tracking
 
     // Métodos utilitários
     public String getDisplayName() {

@@ -1,8 +1,8 @@
 package com.nutrition.application.service;
 
 import com.nutrition.domain.entity.food.Supplement;
-import com.nutrition.domain.entity.food.UserSupplementPreference;
-import com.nutrition.infrastructure.repository.UserSupplementPreferenceRepository;
+import com.nutrition.domain.entity.food.UserSupplement;
+import com.nutrition.infrastructure.repository.UserSupplementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,7 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SupplementReminderService {
 
-    private final UserSupplementPreferenceRepository preferenceRepository;
+    private final UserSupplementRepository userSupplementRepository;
     private final EmailService emailService;
 
     @Value("${app.email.from:noreply@nutrisystem.com}")
@@ -42,18 +42,18 @@ public class SupplementReminderService {
         LocalDate currentDate = LocalDate.now();
         DayOfWeek currentDay = currentDate.getDayOfWeek();
 
-        // Find all preferences with email reminders enabled
-        List<UserSupplementPreference> preferences = preferenceRepository.findByEmailReminderEnabledTrue();
+        // Find all user supplements with email reminders enabled
+        List<UserSupplement> userSupplements = userSupplementRepository.findByEmailReminderEnabledTrue();
 
-        log.info("Found {} supplement preferences with email reminders enabled", preferences.size());
+        log.info("Found {} user supplements with email reminders enabled", userSupplements.size());
 
-        for (UserSupplementPreference preference : preferences) {
+        for (UserSupplement userSupplement : userSupplements) {
             try {
-                if (shouldSendReminder(preference, currentTime, currentDay)) {
-                    sendReminderEmail(preference);
+                if (shouldSendReminder(userSupplement, currentTime, currentDay)) {
+                    sendReminderEmail(userSupplement);
                 }
             } catch (Exception e) {
-                log.error("Error sending reminder for preference ID {}: {}", preference.getId(), e.getMessage(), e);
+                log.error("Error sending reminder for user supplement ID {}: {}", userSupplement.getId(), e.getMessage(), e);
             }
         }
 
@@ -63,14 +63,14 @@ public class SupplementReminderService {
     /**
      * Determines if a reminder should be sent based on time and frequency settings
      */
-    private boolean shouldSendReminder(UserSupplementPreference preference, LocalTime currentTime, DayOfWeek currentDay) {
+    private boolean shouldSendReminder(UserSupplement userSupplement, LocalTime currentTime, DayOfWeek currentDay) {
         // Check if dosage time is set
-        if (preference.getDosageTime() == null) {
+        if (userSupplement.getDosageTime() == null) {
             return false;
         }
 
         // Check if current time matches dosage time (within 30 minutes)
-        LocalTime dosageTime = preference.getDosageTime();
+        LocalTime dosageTime = userSupplement.getDosageTime();
         long minutesDifference = Math.abs(
                 currentTime.toSecondOfDay() / 60 - dosageTime.toSecondOfDay() / 60
         );
@@ -80,14 +80,14 @@ public class SupplementReminderService {
         }
 
         // Check frequency
-        String frequency = preference.getFrequency();
-        if (frequency == null || frequency.equals("DAILY")) {
+        UserSupplement.Frequency frequency = userSupplement.getFrequency();
+        if (frequency == null || frequency == UserSupplement.Frequency.DAILY) {
             return true; // Daily reminders always send
         }
 
-        if (frequency.equals("WEEKLY")) {
+        if (frequency == UserSupplement.Frequency.WEEKLY) {
             // Check if today is one of the selected days
-            String daysOfWeek = preference.getDaysOfWeek();
+            String daysOfWeek = userSupplement.getDaysOfWeek();
             if (daysOfWeek == null || daysOfWeek.isEmpty()) {
                 return false;
             }
@@ -96,7 +96,7 @@ public class SupplementReminderService {
             return daysOfWeek.contains(currentDayAbbr);
         }
 
-        if (frequency.equals("MONTHLY")) {
+        if (frequency == UserSupplement.Frequency.MONTHLY) {
             // Send reminder on the first day of the month
             return LocalDate.now().getDayOfMonth() == 1;
         }
@@ -107,12 +107,12 @@ public class SupplementReminderService {
     /**
      * Sends reminder email to user based on their preferred locale
      */
-    private void sendReminderEmail(UserSupplementPreference preference) {
+    private void sendReminderEmail(UserSupplement userSupplement) {
         try {
-            Supplement supplement = preference.getSupplement();
-            String userEmail = preference.getUser().getEmail();
-            String userName = preference.getUser().getFirstName();
-            String locale = preference.getUser().getPreferredLocale();
+            Supplement supplement = userSupplement.getSupplement();
+            String userEmail = userSupplement.getUser().getEmail();
+            String userName = userSupplement.getUser().getFirstName();
+            String locale = userSupplement.getUser().getPreferredLocale();
 
             if (locale == null || locale.isEmpty()) {
                 locale = "en"; // Default to English
@@ -125,7 +125,7 @@ public class SupplementReminderService {
             emailContent = emailContent.replace("{userName}", userName)
                     .replace("{supplementName}", supplement.getName())
                     .replace("{dosage}", supplement.getRecommendedDosage() != null ? supplement.getRecommendedDosage() : "As recommended")
-                    .replace("{time}", preference.getDosageTime().toString());
+                    .replace("{time}", userSupplement.getDosageTime().toString());
 
             // Get subject line based on locale
             String subject = getSubject(locale);
