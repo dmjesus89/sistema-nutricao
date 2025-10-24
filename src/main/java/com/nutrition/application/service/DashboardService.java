@@ -33,6 +33,7 @@ public class DashboardService {
 
     private final UserProfileRepository profileRepository;
     private final SupplementRepository supplementRepository;
+    private final UserSupplementRepository userSupplementRepository;
     private final UserFoodPreferenceRepository foodPreferenceRepository;
     private final WeightHistoryRepository weightHistoryRepository;
 
@@ -43,7 +44,7 @@ public class DashboardService {
             stats.put("totalSupplementPreferences", 0); // DEPRECATED: Preference types removed
             stats.put("favoriteFoods", foodPreferenceRepository.findByUserAndPreferenceTypeFavorite(user).size());
             stats.put("favoriteSupplements", 0); // DEPRECATED: Preference types removed
-            stats.put("currentSupplements", supplementRepository.findUserCurrentSupplements(user).size());
+            stats.put("currentSupplements", userSupplementRepository.countByUser(user));
 
 
             stats.put("weightRecords", weightHistoryRepository.countByUser(user));
