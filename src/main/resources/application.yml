@@ -55,6 +55,11 @@ app:
       expiration: 86400000 # 24 hours
     reset-password:
       expiration: 3600000 # 1 hour
+    queue:
+      max-retries: 5 # Maximum number of retry attempts
+      polling-interval: 60000 # Polling interval in milliseconds (60 seconds)
+      initial-delay: 5000 # Initial delay before first poll (5 seconds)
+      enabled: true # Feature flag to enable/disable queue processing
 
   rate-limit:
     login:

@@ -220,6 +220,24 @@ public class BrevoEmailService {
         }
     }
 
+    public boolean sendMealReminderEmailSync(String to, String firstName, String mealName,
+                                             String mealTime, String mealDetails) {
+        try {
+            String subject = "Lembrete de Refeição - " + mealName;
+            String mealsUrl = frontEndUrl + "/meals";
+            String htmlContent = buildMealReminderEmailTemplate(firstName, mealName, mealTime, mealDetails, mealsUrl);
+
+            boolean success = sendEmailViaBrevo(to, subject, htmlContent);
+            if (success) {
+                log.info("✅ Meal reminder email sent successfully (sync) to: {} for meal: {}", to, mealName);
+            }
+            return success;
+        } catch (Exception e) {
+            log.error("❌ Error sending meal reminder email (sync) to {}: {}", to, e.getMessage());
+            return false;
+        }
+    }
+
     // ==================== MEAL CONSUMPTION EMAIL ====================
 
     @Async
@@ -239,6 +257,23 @@ public class BrevoEmailService {
         } catch (Exception e) {
             log.error("❌ Error sending meal consumption email to {}: {}", to, e.getMessage());
             return CompletableFuture.completedFuture(null);
+        }
+    }
+
+    public boolean sendMealConsumptionEmailSync(String to, String firstName, String mealName) {
+        try {
+            String subject = "Refeição Consumida - " + mealName;
+            String mealsUrl = frontEndUrl + "/meals";
+            String htmlContent = buildMealConsumptionEmailTemplate(firstName, mealName, mealsUrl);
+
+            boolean success = sendEmailViaBrevo(to, subject, htmlContent);
+            if (success) {
+                log.info("✅ Meal consumption email sent successfully (sync) to: {} for meal: {}", to, mealName);
+            }
+            return success;
+        } catch (Exception e) {
+            log.error("❌ Error sending meal consumption email (sync) to {}: {}", to, e.getMessage());
+            return false;
         }
     }
 
@@ -262,6 +297,24 @@ public class BrevoEmailService {
         } catch (Exception e) {
             log.error("❌ Error sending weekly summary email to {}: {}", to, e.getMessage());
             return CompletableFuture.completedFuture(null);
+        }
+    }
+
+    public boolean sendWeeklySummaryEmailSync(String to, String firstName, int mealsConsumed,
+                                              String totalCalories) {
+        try {
+            String subject = "Resumo Semanal de Nutrição";
+            String dashboardUrl = frontEndUrl + "/dashboard";
+            String htmlContent = buildWeeklySummaryEmailTemplate(firstName, mealsConsumed, totalCalories, dashboardUrl);
+
+            boolean success = sendEmailViaBrevo(to, subject, htmlContent);
+            if (success) {
+                log.info("✅ Weekly summary email sent successfully (sync) to: {}", to);
+            }
+            return success;
+        } catch (Exception e) {
+            log.error("❌ Error sending weekly summary email (sync) to {}: {}", to, e.getMessage());
+            return false;
         }
     }
 

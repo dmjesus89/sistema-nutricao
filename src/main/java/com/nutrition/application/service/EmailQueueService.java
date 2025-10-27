@@ -4,6 +4,7 @@ import com.nutrition.domain.entity.auth.EmailQueue;
 import com.nutrition.infrastructure.repository.EmailQueueRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,12 @@ public class EmailQueueService {
     private final EmailQueueRepository emailQueueRepository;
     private final BrevoEmailService emailService;
 
+    @Value("${app.email.queue.max-retries:5}")
+    private Integer defaultMaxRetries;
+
+    @Value("${app.email.queue.enabled:true}")
+    private Boolean queueEnabled;
+
     /**
      * Queue an email for sending
      */
@@ -33,21 +40,29 @@ public class EmailQueueService {
             .additionalData(additionalData)
             .status(EmailQueue.Status.PENDING)
             .retryCount(0)
-            .maxRetries(5)
+            .maxRetries(defaultMaxRetries)
             .nextRetryAt(LocalDateTime.now())
             .build();
 
         emailQueue = emailQueueRepository.save(emailQueue);
-        log.info("Email queued: type={}, recipient={}, id={}", emailType, recipientEmail, emailQueue.getId());
+        log.info("Email queued: type={}, recipient={}, id={}, max-retries={}",
+            emailType, recipientEmail, emailQueue.getId(), defaultMaxRetries);
         return emailQueue;
     }
 
     /**
-     * Process pending emails - runs every minute
+     * Process pending emails - runs based on configuration
+     * Default: every 60 seconds with 5 second initial delay
      */
-    @Scheduled(fixedDelay = 60000, initialDelay = 5000) // Run every 60 seconds
+    @Scheduled(fixedDelayString = "${app.email.queue.polling-interval:60000}",
+               initialDelayString = "${app.email.queue.initial-delay:5000}")
     @Transactional
     public void processPendingEmails() {
+        if (!queueEnabled) {
+            log.debug("Email queue processing is disabled");
+            return;
+        }
+
         List<EmailQueue> pendingEmails = emailQueueRepository.findPendingEmails(LocalDateTime.now());
 
         if (pendingEmails.isEmpty()) {
@@ -120,9 +135,9 @@ public class EmailQueueService {
                         emailQueue.getToken()
                     );
 
-                // Add other email types as needed
                 default:
-                    log.error("Unknown email type: {}", emailQueue.getEmailType());
+                    log.error("Unsupported email type for queue: {}. Only auth emails (CONFIRMATION, WELCOME, PASSWORD_RESET) use queue.",
+                        emailQueue.getEmailType());
                     return false;
             }
         } catch (Exception e) {

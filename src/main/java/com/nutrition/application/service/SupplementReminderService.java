@@ -5,14 +5,10 @@ import com.nutrition.domain.entity.food.UserSupplement;
 import com.nutrition.infrastructure.repository.UserSupplementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -25,9 +21,6 @@ public class SupplementReminderService {
 
     private final UserSupplementRepository userSupplementRepository;
     private final BrevoEmailService emailService;
-
-    @Value("${app.email.from:noreply@nutrisystem.com}")
-    private String fromEmail;
 
     /**
      * Scheduled task that runs every hour to check for supplement reminders
@@ -116,68 +109,34 @@ public class SupplementReminderService {
     }
 
     /**
-     * Sends reminder email to user based on their preferred locale
+     * Send reminder email to user
      */
     private void sendReminderEmail(UserSupplement userSupplement) {
         try {
             Supplement supplement = userSupplement.getSupplement();
             String userEmail = userSupplement.getUser().getEmail();
             String userName = userSupplement.getUser().getFirstName();
-            String locale = userSupplement.getUser().getPreferredLocale();
 
-            if (locale == null || locale.isEmpty()) {
-                locale = "en"; // Default to English
-            }
+            String supplementName = supplement.getName();
+            String dosageTime = userSupplement.getDosageTime().toString();
+            String recommendedDosage = supplement.getRecommendedDosage() != null
+                ? supplement.getRecommendedDosage()
+                : "As recommended";
 
-            // Load email template based on locale
-            String emailContent = loadEmailTemplate(locale);
+            // Send email directly via Brevo
+            emailService.sendSupplementReminderEmail(
+                userEmail,
+                userName,
+                supplementName,
+                dosageTime,
+                recommendedDosage
+            );
 
-            // Replace placeholders
-            emailContent = emailContent.replace("{userName}", userName)
-                    .replace("{supplementName}", supplement.getName())
-                    .replace("{dosage}", supplement.getRecommendedDosage() != null ? supplement.getRecommendedDosage() : "As recommended")
-                    .replace("{time}", userSupplement.getDosageTime().toString());
-
-            // Get subject line based on locale
-            String subject = getSubject(locale);
-
-            // Send email
-            emailService.sendSupplementReminderEmail(userEmail, subject, emailContent, userSupplement.getDosageTime().toString(), supplement.getRecommendedDosage() != null ? supplement.getRecommendedDosage() : "As recommended");
-
-            log.info("Sent supplement reminder to {} for supplement: {}", userEmail, supplement.getName());
+            log.info("Supplement reminder sent to {} for supplement: {}", userEmail, supplementName);
 
         } catch (Exception e) {
             log.error("Failed to send supplement reminder email", e);
-            throw new RuntimeException("Failed to send supplement reminder email", e);
         }
-    }
-
-    /**
-     * Loads email template from resources based on locale
-     */
-    private String loadEmailTemplate(String locale) throws IOException {
-        String templatePath = String.format("email-templates/%s/supplement-reminder.html", locale);
-
-        try {
-            ClassPathResource resource = new ClassPathResource(templatePath);
-            return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            log.warn("Email template not found for locale: {}. Falling back to English", locale);
-            // Fallback to English if locale template not found
-            ClassPathResource resource = new ClassPathResource("email-templates/en/supplement-reminder.html");
-            return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        }
-    }
-
-    /**
-     * Gets email subject based on locale
-     */
-    private String getSubject(String locale) {
-        return switch (locale) {
-            case "es" -> "⏰ Recordatorio de Suplemento - NutriSystem";
-            case "pt" -> "⏰ Lembrete de Suplemento - NutriSystem";
-            default -> "⏰ Supplement Reminder - NutriSystem";
-        };
     }
 
     /**
@@ -242,7 +201,7 @@ public class SupplementReminderService {
     }
 
     /**
-     * Sends reminder email for a specific schedule
+     * Send reminder email for a specific schedule
      */
     private void sendReminderEmailForSchedule(
             UserSupplement userSupplement,
@@ -251,38 +210,32 @@ public class SupplementReminderService {
             Supplement supplement = userSupplement.getSupplement();
             String userEmail = userSupplement.getUser().getEmail();
             String userName = userSupplement.getUser().getFirstName();
-            String locale = userSupplement.getUser().getPreferredLocale();
-
-            if (locale == null || locale.isEmpty()) {
-                locale = "en"; // Default to English
-            }
-
-            // Load email template based on locale
-            String emailContent = loadEmailTemplate(locale);
 
             // Build schedule label for display
             String scheduleLabel = schedule.getLabel() != null && !schedule.getLabel().isEmpty()
                     ? " (" + schedule.getLabel() + ")"
                     : "";
 
-            // Replace placeholders
-            emailContent = emailContent.replace("{userName}", userName)
-                    .replace("{supplementName}", supplement.getName())
-                    .replace("{dosage}", supplement.getRecommendedDosage() != null ? supplement.getRecommendedDosage() : "As recommended")
-                    .replace("{time}", schedule.getDosageTime().toString() + scheduleLabel);
+            String supplementName = supplement.getName();
+            String dosageTime = schedule.getDosageTime().toString() + scheduleLabel;
+            String recommendedDosage = supplement.getRecommendedDosage() != null
+                ? supplement.getRecommendedDosage()
+                : "As recommended";
 
-            // Get subject line based on locale
-            String subject = getSubject(locale);
+            // Send email directly via Brevo
+            emailService.sendSupplementReminderEmail(
+                userEmail,
+                userName,
+                supplementName,
+                dosageTime,
+                recommendedDosage
+            );
 
-            // Send email
-            emailService.sendSupplementReminderEmail(userEmail, subject, emailContent, userSupplement.getDosageTime().toString(), supplement.getRecommendedDosage() != null ? supplement.getRecommendedDosage() : "As recommended");
-
-            log.info("Sent supplement reminder to {} for supplement: {} at {} {}",
-                    userEmail, supplement.getName(), schedule.getDosageTime(), scheduleLabel);
+            log.info("Supplement reminder sent to {} for supplement: {} at {}",
+                    userEmail, supplementName, dosageTime);
 
         } catch (Exception e) {
             log.error("Failed to send supplement reminder email for schedule", e);
-            throw new RuntimeException("Failed to send supplement reminder email for schedule", e);
         }
     }
 }

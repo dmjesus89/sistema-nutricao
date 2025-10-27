@@ -27,6 +27,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.emailConfirmed = true AND u.enabled = true")
     Optional<User> findActiveUsers();
 
+    @Query("SELECT u FROM User u WHERE u.enabled = true")
+    java.util.List<User> findByEnabledTrue();
+
+    @Query("SELECT u FROM User u WHERE u.enabled = true AND u.welcomeEmailSent = false")
+    java.util.List<User> findEnabledUsersWithoutWelcomeEmail();
+
     @Query("SELECT COUNT(u) FROM User u WHERE u.role = 'USER'")
     long countRegularUsers();
 

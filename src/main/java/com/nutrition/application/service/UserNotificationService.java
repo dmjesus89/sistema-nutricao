@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -30,11 +29,8 @@ public class UserNotificationService {
         log.debug("Checking for pending welcome emails...");
 
         try {
-            // Find all enabled users who haven't received welcome email yet
-            List<User> usersNeedingWelcomeEmail = userRepository.findAll().stream()
-                .filter(User::isEnabled)
-                .filter(user -> !user.getWelcomeEmailSent())
-                .collect(Collectors.toList());
+            // Find all enabled users who haven't received welcome email yet (optimized query)
+            List<User> usersNeedingWelcomeEmail = userRepository.findEnabledUsersWithoutWelcomeEmail();
 
             if (usersNeedingWelcomeEmail.isEmpty()) {
                 log.debug("No pending welcome emails found");

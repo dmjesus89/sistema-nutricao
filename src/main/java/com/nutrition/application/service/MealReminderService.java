@@ -40,10 +40,15 @@ public class MealReminderService {
         LocalTime reminderWindow = now.plusMinutes(5); // Look ahead 5 minutes
 
         try {
-            // Get all active users who have confirmed their email
-            List<User> activeUsers = userRepository.findAll().stream()
-                .filter(User::isEnabled)
-                .collect(Collectors.toList());
+            // Get all enabled users from database (optimized query)
+            List<User> activeUsers = userRepository.findByEnabledTrue();
+
+            if (activeUsers.isEmpty()) {
+                log.debug("No active users found for meal reminders");
+                return;
+            }
+
+            log.debug("Checking meal reminders for {} active users", activeUsers.size());
 
             for (User user : activeUsers) {
                 checkUserMealReminders(user, now, reminderWindow);
