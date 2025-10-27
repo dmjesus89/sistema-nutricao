@@ -5,7 +5,6 @@ server:
 resend:
   api:
     key: re_bwpL8Hnj_EskfeACxdZKmUNRYkqFuP9RL
-    url: https://api.resend.com/emails
 
 spring:
   jackson:
