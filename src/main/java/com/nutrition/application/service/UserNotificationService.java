@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public class UserNotificationService {
 
     private final UserRepository userRepository;
-    private final GmailEmailService emailService;
+    private final BrevoEmailService emailService;
 
     /**
      * Scheduled task that runs every hour to check for users who need welcome emails

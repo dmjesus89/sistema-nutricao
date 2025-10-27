@@ -5,11 +5,17 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -369,5 +375,241 @@ public class GmailEmailService {
                 </body>
                 </html>
                 """, firstName, mealsConsumed, totalCalories, dashboardUrl);
+    }
+
+    /**
+     * Send supplement reminder email (Async)
+     */
+    @Async
+    public CompletableFuture<Void> sendSupplementReminderEmail(String toEmail, String toName, String supplementName,
+                                                               String dosageTime, String recommendedDosage) {
+        try {
+            String subject = "⏰ Lembrete: Hora do seu suplemento - " + supplementName;
+            String htmlBody = buildSupplementReminderEmailBody(toName, supplementName, dosageTime, recommendedDosage);
+
+            sendHtmlEmail(toEmail, subject, htmlBody);
+            log.info("Supplement reminder email sent successfully to: {} for supplement: {}", toEmail, supplementName);
+
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            log.error("Error sending supplement reminder email to {}: {}", toEmail, e.getMessage());
+            return CompletableFuture.completedFuture(null);
+        }
+    }
+
+    /**
+     * Send supplement reminder email (Sync) - for queue processing
+     */
+    public boolean sendSupplementReminderEmailSync(String toEmail, String toName, String supplementName,
+                                                   String dosageTime, String recommendedDosage) {
+        try {
+            String subject = "⏰ Lembrete: Hora do seu suplemento - " + supplementName;
+            String htmlBody = buildSupplementReminderEmailBody(toName, supplementName, dosageTime, recommendedDosage);
+
+            sendHtmlEmail(toEmail, subject, htmlBody);
+            log.info("Supplement reminder email sent successfully (sync) to: {} for supplement: {}", toEmail, supplementName);
+            return true;
+        } catch (Exception e) {
+            log.error("Error sending supplement reminder email (sync) to {}: {}", toEmail, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Build HTML body for supplement reminder email
+     */
+    private String buildSupplementReminderEmailBody(String firstName, String supplementName,
+                                                    String dosageTime, String recommendedDosage) {
+        String supplementsUrl = frontEndUrl + "/supplements";
+
+        return String.format("""
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Lembrete de Suplemento</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+                        .container { max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                        .header { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; border-radius: 8px 8px 0 0; color: white; text-align: center; }
+                        .header h1 { margin: 0; font-size: 28px; }
+                        .content { padding: 30px; }
+                        .supplement-card { background-color: white; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; margin: 20px 0; }
+                        .supplement-card h2 { color: #667eea; margin-top: 0; }
+                        .info-row { margin: 10px 0; font-size: 16px; }
+                        .info-label { font-weight: bold; color: #333; }
+                        .button { display: inline-block; background-color: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+                        .button:hover { background-color: #764ba2; }
+                        .tip { background-color: #f9f9f9; padding: 15px; border-radius: 4px; margin: 20px 0; border-left: 4px solid #667eea; color: #666; font-size: 14px; }
+                        .footer { color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; text-align: center; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>⏰ Lembrete de Suplemento</h1>
+                        </div>
+                        <div class="content">
+                            <p style="font-size: 16px;">Olá <strong>%s</strong>! 👋</p>
+                            <p>É hora de tomar seu suplemento! Não se esqueça de manter sua rotina em dia.</p>
+                
+                            <div class="supplement-card">
+                                <h2>💊 %s</h2>
+                                <div class="info-row">
+                                    <span class="info-label">⏰ Horário:</span> %s
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">📋 Dosagem recomendada:</span> %s
+                                </div>
+                            </div>
+                
+                            <div class="tip">
+                                <strong>💡 Dica:</strong> Não se esqueça de tomar seu suplemento com água e de acordo com as instruções na embalagem.
+                            </div>
+                
+                            <div style="text-align: center;">
+                                <a href="%s" class="button">Ver Meus Suplementos</a>
+                            </div>
+                
+                            <div class="footer">
+                                <p>✅ Mantenha sua rotina de suplementação em dia para melhores resultados!</p>
+                                <p>© 2024 Sistema de Nutrição. Todos os direitos reservados.</p>
+                            </div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """, firstName, supplementName, dosageTime, recommendedDosage, supplementsUrl);
+    }
+
+// OPTIONAL: Additional supplement-related methods
+
+    /**
+     * Send supplement intake confirmation email
+     */
+    @Async
+    public CompletableFuture<Void> sendSupplementIntakeConfirmationEmail(String toEmail, String firstName, String supplementName) {
+        try {
+            String subject = "✅ Suplemento Registrado - " + supplementName;
+            String htmlBody = buildSupplementIntakeConfirmationEmailBody(firstName, supplementName);
+
+            sendHtmlEmail(toEmail, subject, htmlBody);
+            log.info("Supplement intake confirmation email sent successfully to: {}", toEmail);
+
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            log.error("Error sending supplement intake confirmation email to {}: {}", toEmail, e.getMessage());
+            return CompletableFuture.completedFuture(null);
+        }
+    }
+
+    /**
+     * Build HTML body for supplement intake confirmation
+     */
+    private String buildSupplementIntakeConfirmationEmailBody(String firstName, String supplementName) {
+        String supplementsUrl = frontEndUrl + "/supplements";
+
+        return String.format("""
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Suplemento Registrado</title>
+                </head>
+                <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
+                    <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h1 style="color: #667eea; margin: 0;">✅ Suplemento Registrado!</h1>
+                        </div>
+                        <p>Olá <strong>%s</strong>,</p>
+                        <p>Você acabou de registrar a ingestão do suplemento <strong>"%s"</strong>.</p>
+                        <div style="background-color: #f0f4ff; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
+                            <p style="margin: 0; color: #667eea; font-weight: bold;">🎯 Parabéns! Continue mantendo sua rotina de suplementação em dia!</p>
+                        </div>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="%s" style="background-color: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Ver Meus Suplementos</a>
+                        </div>
+                        <p style="margin-top: 30px; color: #666; font-size: 12px; text-align: center;">
+                            💪 Cada suplemento registrado é um passo em direção à sua melhor saúde!
+                        </p>
+                    </div>
+                </body>
+                </html>
+                """, firstName, supplementName, supplementsUrl);
+    }
+
+    /**
+     * Send weekly supplement summary email
+     */
+    @Async
+    public CompletableFuture<Void> sendWeeklySupplementSummaryEmail(String toEmail, String firstName,
+                                                                    int supplementsTaken, int supplementsScheduled) {
+        try {
+            String subject = "📊 Resumo Semanal de Suplementação";
+            String htmlBody = buildWeeklySupplementSummaryEmailBody(firstName, supplementsTaken, supplementsScheduled);
+
+            sendHtmlEmail(toEmail, subject, htmlBody);
+            log.info("Weekly supplement summary email sent successfully to: {}", toEmail);
+
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            log.error("Error sending weekly supplement summary email to {}: {}", toEmail, e.getMessage());
+            return CompletableFuture.completedFuture(null);
+        }
+    }
+
+    /**
+     * Build HTML body for weekly supplement summary
+     */
+    private String buildWeeklySupplementSummaryEmailBody(String firstName, int supplementsTaken, int supplementsScheduled) {
+        double adherencePercentage = supplementsScheduled > 0 ? (supplementsTaken * 100.0 / supplementsScheduled) : 0;
+        String dashboardUrl = frontEndUrl + "/dashboard";
+
+        return String.format("""
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Resumo Semanal de Suplementação</title>
+                </head>
+                <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
+                    <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h1 style="color: #667eea; margin: 0;">📊 Resumo Semanal de Suplementação</h1>
+                        </div>
+                        <p>Olá <strong>%s</strong>,</p>
+                        <p>Aqui está o resumo da sua semana de suplementação:</p>
+                
+                        <div style="background-color: #f0f4ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <div style="margin: 15px 0; padding: 10px; background-color: white; border-radius: 4px;">
+                                <p style="margin: 0; color: #666;">💊 <strong>Suplementos tomados:</strong></p>
+                                <p style="margin: 5px 0 0 0; font-size: 24px; color: #667eea; font-weight: bold;">%d</p>
+                            </div>
+                            <div style="margin: 15px 0; padding: 10px; background-color: white; border-radius: 4px;">
+                                <p style="margin: 0; color: #666;">📋 <strong>Suplementos agendados:</strong></p>
+                                <p style="margin: 5px 0 0 0; font-size: 24px; color: #667eea; font-weight: bold;">%d</p>
+                            </div>
+                            <div style="margin: 15px 0; padding: 10px; background-color: white; border-radius: 4px;">
+                                <p style="margin: 0; color: #666;">📈 <strong>Taxa de aderência:</strong></p>
+                                <p style="margin: 5px 0 0 0; font-size: 24px; color: #667eea; font-weight: bold;">%.1f%%</p>
+                            </div>
+                        </div>
+                
+                        <p style="color: #667eea; font-weight: bold; text-align: center;">Continue com o excelente trabalho! 💪</p>
+                
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="%s" style="background-color: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Ver Dashboard</a>
+                        </div>
+                
+                        <p style="margin-top: 30px; color: #666; font-size: 12px; text-align: center;">
+                            💡 Manter uma boa aderência à sua rotina de suplementação é importante para alcançar seus objetivos de saúde!
+                        </p>
+                    </div>
+                </body>
+                </html>
+                """, firstName, supplementsTaken, supplementsScheduled, adherencePercentage, dashboardUrl);
     }
 }

@@ -17,7 +17,7 @@ import java.util.List;
 public class EmailQueueService {
 
     private final EmailQueueRepository emailQueueRepository;
-    private final GmailEmailService emailService;
+    private final BrevoEmailService emailService;
 
     /**
      * Queue an email for sending
@@ -135,7 +135,7 @@ public class EmailQueueService {
      * Handle email failure with retry logic
      */
     @Transactional
-    private void handleEmailFailure(EmailQueue emailQueue, String errorMessage) {
+    protected void handleEmailFailure(EmailQueue emailQueue, String errorMessage) {
         emailQueue.incrementRetryCount();
         emailQueue.setLastError(errorMessage);
 

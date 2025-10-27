@@ -5,6 +5,7 @@ server:
 resend:
   api:
     key: re_bwpL8Hnj_EskfeACxdZKmUNRYkqFuP9RL
+    url: https://api.resend.com/emails
 
 spring:
   jackson:
@@ -65,7 +66,7 @@ app:
     refresh-expiration: 604800000 # 7 days
 
   email:
-    from: onboarding@resend.dev
+    from: dmjesus89@gmail.com
     confirmation:
       expiration: 86400000 # 24 hours
     reset-password:
