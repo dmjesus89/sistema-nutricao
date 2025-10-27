@@ -16,6 +16,9 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class BrevoEmailService {
 
+    @Value("${app.email.key}")
+    private String brevoApiKey;
+
     @Value("${app.email.from}")
     private String fromEmail;
 
@@ -48,7 +51,7 @@ public class BrevoEmailService {
 
             int statusCode = RestAssured
                     .given()
-
+                    .header("api-key", brevoApiKey)
                     .header("Content-Type", "application/json")
                     .body(payload)
                     .when()
