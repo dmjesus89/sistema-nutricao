@@ -20,7 +20,7 @@ import java.util.List;
 public class SupplementReminderScheduler {
 
     private final UserSupplementRepository userSupplementRepository;
-    private final EmailService emailService;
+    private final BrevoEmailService emailService;
 
     /**
      * Runs every 15 minutes to check for supplement reminders that need to be sent

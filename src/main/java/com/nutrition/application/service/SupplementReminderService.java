@@ -24,7 +24,7 @@ import java.util.List;
 public class SupplementReminderService {
 
     private final UserSupplementRepository userSupplementRepository;
-    private final EmailService emailService;
+    private final BrevoEmailService emailService;
 
     @Value("${app.email.from:noreply@nutrisystem.com}")
     private String fromEmail;
@@ -142,7 +142,7 @@ public class SupplementReminderService {
             String subject = getSubject(locale);
 
             // Send email
-            emailService.sendHtmlEmail(userEmail, subject, emailContent);
+            emailService.sendSupplementReminderEmail(userEmail, subject, emailContent, userSupplement.getDosageTime().toString(), supplement.getRecommendedDosage() != null ? supplement.getRecommendedDosage() : "As recommended");
 
             log.info("Sent supplement reminder to {} for supplement: {}", userEmail, supplement.getName());
 
@@ -275,7 +275,7 @@ public class SupplementReminderService {
             String subject = getSubject(locale);
 
             // Send email
-            emailService.sendHtmlEmail(userEmail, subject, emailContent);
+            emailService.sendSupplementReminderEmail(userEmail, subject, emailContent, userSupplement.getDosageTime().toString(), supplement.getRecommendedDosage() != null ? supplement.getRecommendedDosage() : "As recommended");
 
             log.info("Sent supplement reminder to {} for supplement: {} at {} {}",
                     userEmail, supplement.getName(), schedule.getDosageTime(), scheduleLabel);

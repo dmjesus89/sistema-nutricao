@@ -16,7 +16,8 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class BrevoEmailService {
 
-    private String brevoApiKey = "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";
+    @Value("${app.email.key}")
+    private String brevoApiKey;
 
     @Value("${app.email.from}")
     private String fromEmail;
@@ -24,9 +25,7 @@ public class BrevoEmailService {
     @Value("${app.frontend.url}")
     private String frontEndUrl;
 
-    /**
-     * Core method to send email via Brevo API
-     */
+
     private boolean sendEmailViaBrevo(String to, String subject, String htmlContent) {
         try {
             String payload = String.format("""
