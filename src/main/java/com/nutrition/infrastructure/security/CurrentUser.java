@@ -1,4 +1,3 @@
-// 1. Create the @CurrentUser annotation
 package com.nutrition.infrastructure.security;
 
 import java.lang.annotation.Documented;

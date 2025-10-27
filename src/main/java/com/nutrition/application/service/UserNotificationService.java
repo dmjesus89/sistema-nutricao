@@ -70,24 +70,5 @@ public class UserNotificationService {
         }
     }
 
-    /**
-     * Manual method to resend welcome email to a user
-     * Can be called from a controller endpoint if needed
-     */
-    @Transactional
-    public void resendWelcomeEmail(Long userId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        if (!user.isEnabled()) {
-            throw new IllegalStateException("User account is not enabled");
-        }
-
-        // Reset the flag and send again
-        user.setWelcomeEmailSent(false);
-        user.setWelcomeEmailSentAt(null);
-        userRepository.save(user);
-
-        sendWelcomeEmailAndMarkSent(user);
-    }
 }

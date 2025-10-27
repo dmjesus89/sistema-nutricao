@@ -38,19 +38,5 @@ public class ConfigurationService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    public ActivityLevelResponse getActivityLevelByCode(String code) {
-        log.info("Fetching activity level by code: {}", code);
-        return activityLevelConfigRepository.findByCodeAndActive(code, true)
-                .map(ActivityLevelResponse::fromEntity)
-                .orElseThrow(() -> new IllegalArgumentException("Activity level not found: " + code));
-    }
 
-    @Transactional(readOnly = true)
-    public GoalResponse getGoalByCode(String code) {
-        log.info("Fetching goal by code: {}", code);
-        return goalConfigRepository.findByCodeAndActive(code, true)
-                .map(GoalResponse::fromEntity)
-                .orElseThrow(() -> new IllegalArgumentException("Goal not found: " + code));
-    }
 }

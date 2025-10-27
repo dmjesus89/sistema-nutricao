@@ -43,6 +43,7 @@ public class SecurityConfiguration {
                         // Public endpoints
                         .requestMatchers("/").permitAll()  // ADD THIS LINE - Allow Render health checks
                         .requestMatchers("/healthz").permitAll()
+                        .requestMatchers("/swagger-ui.html").permitAll()
                         // Public endpoints
                         .requestMatchers("/healthz").permitAll()  // Add this line
                         .requestMatchers("/api/v1/auth/register").permitAll()

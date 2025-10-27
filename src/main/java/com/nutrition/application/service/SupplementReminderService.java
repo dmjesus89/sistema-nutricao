@@ -22,10 +22,7 @@ public class SupplementReminderService {
     private final UserSupplementRepository userSupplementRepository;
     private final BrevoEmailService emailService;
 
-    /**
-     * Scheduled task that runs every hour to check for supplement reminders
-     * Cron: 0 0 * * * * - Run at the start of every hour
-     */
+
     @Scheduled(cron = "0 0 * * * *")
     @Transactional(readOnly = true)
     public void sendSupplementReminders() {

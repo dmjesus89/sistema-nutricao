@@ -26,7 +26,6 @@ public class ProfileValidationService {
     public static final BigDecimal MIN_HEALTHY_WEEKLY_WEIGHT_CHANGE = BigDecimal.valueOf(0.25);
     public static final BigDecimal MAX_HEALTHY_WEEKLY_WEIGHT_CHANGE = BigDecimal.valueOf(1.0);
 
-    //TODO deixar essas infos em base de dados.
 
     public ValidationResult validateProfileData(LocalDate birthDate, UserProfile.Gender gender,
                                                 BigDecimal height, BigDecimal currentWeight,
@@ -354,7 +353,6 @@ public class ProfileValidationService {
         return weight.divide(heightSquared, 2, BigDecimal.ROUND_HALF_UP);
     }
 
-    // ========== Classe para resultado de validação ==========
 
     public static class ValidationResult {
         private final boolean valid;

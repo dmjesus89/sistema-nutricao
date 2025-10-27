@@ -16,66 +16,29 @@ import java.util.Optional;
 @Repository
 public interface FoodRepository extends JpaRepository<Food, Long> {
 
-    // ========== BASIC QUERIES ==========
-
-    /**
-     * Find all active foods with pagination
-     */
     Page<Food> findByActiveTrueOrderByNameAsc(Pageable pageable);
 
 
-    /**
-     * Find active food by ID
-     */
     Optional<Food> findByIdAndActiveTrue(Long id);
 
-
-    // ========== CATEGORY QUERIES ==========
-
-    /**
-     * Find foods by category
-     */
     Page<Food> findByCategoryAndActiveTrueOrderByNameAsc(Food.FoodCategory category, Pageable pageable);
 
-    /**
-     * // ========== BARCODE QUERIES ==========
-     * <p>
-     * /**
-     * Find food by barcode
-     */
     Optional<Food> findByBarcodeAndActiveTrue(String barcode);
-
-
-    // ========== USER PREFERENCE QUERIES ==========
-
 
     @Query("SELECT f FROM Food f JOIN f.userPreferences up WHERE up.user = :user AND " +
             "up.preferenceType IS NOT NULL AND f.active = true ORDER BY up.createdAt DESC")
     List<Food> findUserWithPreferences(@Param("user") User user);
 
-    /**
-     * Find user's favorite foods
-     */
     @Query("SELECT f FROM Food f JOIN f.userPreferences up WHERE up.user = :user AND " +
             "up.preferenceType = 'FAVORITE' AND f.active = true ORDER BY up.createdAt DESC")
     List<Food> findUserFavorites(@Param("user") User user);
 
-    /**
-     * Find suitable foods for user (excluding restrictions and dislikes)
-     */
     @Query("SELECT DISTINCT f FROM Food f WHERE f.active = true AND f.id NOT IN " +
             "(SELECT up.food.id FROM UserFoodPreference up WHERE up.user = :user AND " +
             "up.preferenceType IN ('RESTRICTION', 'AVOID', 'DISLIKE')) " +
             "ORDER BY f.name ASC")
     Page<Food> findSuitableFoodsForUser(@Param("user") User user, Pageable pageable);
 
-
-    // ========== ADVANCED SEARCH ==========
-
-    /**
-     * Advanced search with all possible filters
-     * Uses accent-insensitive search for name (users can search with or without accents)
-     */
     @Query(value = "SELECT f.* FROM foods f WHERE f.active = true AND " +
             "(:name IS NULL OR remove_accents(LOWER(f.name)) LIKE remove_accents(LOWER(CONCAT('%', :name, '%')))) AND " +
             "(:category IS NULL OR f.category = CAST(:category AS text)) AND " +
@@ -101,17 +64,9 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
                                      Pageable pageable);
 
 
-    // ========== STATISTICS QUERIES ==========
-
-    /**
-     * Count all active foods
-     */
     @Query("SELECT COUNT(f) FROM Food f WHERE f.active = true")
     long countActiveFoods();
 
-    /**
-     * Count foods by category
-     */
     @Query("SELECT f.category, COUNT(f) FROM Food f WHERE f.active = true GROUP BY f.category ORDER BY COUNT(f) DESC")
     List<Object[]> countFoodsByCategory();
 

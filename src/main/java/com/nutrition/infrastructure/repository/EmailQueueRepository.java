@@ -12,13 +12,13 @@ import java.util.List;
 public interface EmailQueueRepository extends JpaRepository<EmailQueue, Long> {
 
     @Query("SELECT e FROM EmailQueue e WHERE e.status = 'PENDING' " +
-           "AND (e.nextRetryAt IS NULL OR e.nextRetryAt <= :now) " +
-           "AND e.retryCount < e.maxRetries " +
-           "ORDER BY e.createdAt ASC")
+            "AND (e.nextRetryAt IS NULL OR e.nextRetryAt <= :now) " +
+            "AND e.retryCount < e.maxRetries " +
+            "ORDER BY e.createdAt ASC")
     List<EmailQueue> findPendingEmails(LocalDateTime now);
 
     @Query("SELECT e FROM EmailQueue e WHERE e.status = 'FAILED' " +
-           "ORDER BY e.updatedAt DESC")
+            "ORDER BY e.updatedAt DESC")
     List<EmailQueue> findFailedEmails();
 
     @Query("SELECT COUNT(e) FROM EmailQueue e WHERE e.status = 'PENDING'")
@@ -27,9 +27,4 @@ public interface EmailQueueRepository extends JpaRepository<EmailQueue, Long> {
     @Query("SELECT COUNT(e) FROM EmailQueue e WHERE e.status = 'FAILED'")
     Long countFailedEmails();
 
-    List<EmailQueue> findByRecipientEmailAndEmailTypeAndStatus(
-        String recipientEmail,
-        EmailQueue.EmailType emailType,
-        EmailQueue.Status status
-    );
 }

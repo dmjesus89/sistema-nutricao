@@ -12,7 +12,5 @@ public interface ActivityLevelConfigRepository extends JpaRepository<ActivityLev
 
     List<ActivityLevelConfig> findByActiveOrderByDisplayOrder(Boolean active);
 
-    Optional<ActivityLevelConfig> findByCode(String code);
-
     Optional<ActivityLevelConfig> findByCodeAndActive(String code, Boolean active);
 }

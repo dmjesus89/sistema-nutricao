@@ -12,6 +12,8 @@ public class ApiErrorResponse {
 
     @JsonProperty("messageToDisplay")
     private String messageToDisplay;
+    @JsonProperty("message")
     private String message;
+    @JsonProperty("path")
     private String path;
 }

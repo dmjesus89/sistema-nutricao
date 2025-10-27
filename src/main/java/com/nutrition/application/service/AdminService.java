@@ -1,10 +1,7 @@
 package com.nutrition.application.service;
 
 
-import com.nutrition.infrastructure.repository.EmailConfirmationTokenRepository;
 import com.nutrition.infrastructure.repository.FoodRepository;
-import com.nutrition.infrastructure.repository.PasswordResetTokenRepository;
-import com.nutrition.infrastructure.repository.RefreshTokenRepository;
 import com.nutrition.infrastructure.repository.SupplementRepository;
 import com.nutrition.infrastructure.repository.UserFoodPreferenceRepository;
 import com.nutrition.infrastructure.repository.UserProfileRepository;
@@ -14,9 +11,7 @@ import com.nutrition.infrastructure.repository.WeightHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,9 +28,6 @@ public class AdminService {
     private final UserFoodPreferenceRepository foodPreferenceRepository;
     private final UserSupplementRepository userSupplementRepository;
     private final WeightHistoryRepository weightHistoryRepository;
-    private final EmailConfirmationTokenRepository confirmationTokenRepository;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
 
     public Map<String, Object> getDashboardStats() {
         try {
@@ -137,20 +129,4 @@ public class AdminService {
     }
 
 
-    @Transactional
-    public void performMaintenance() {
-        try {
-            LocalDateTime now = LocalDateTime.now();
-
-            confirmationTokenRepository.deleteExpiredTokens(now);
-            passwordResetTokenRepository.deleteExpiredTokens(now);
-            refreshTokenRepository.cleanupTokens(now);
-            // apagar confirmação de tokens
-
-            log.info("Database maintenance completed successfully");
-        } catch (Exception e) {
-            log.error("Error performing database maintenance: {}", e.getMessage());
-            throw e;
-        }
-    }
 }

@@ -543,37 +543,7 @@ public class ProfileService {
         return monthlyChange.setScale(3, RoundingMode.HALF_UP);
     }
 
-    /**
-     * Calcula mudança de peso nas últimas N semanas
-     */
-    private BigDecimal calculateRecentWeeklyChange(User currentUser, int weeks) {
-        LocalDate nWeeksAgo = LocalDate.now().minusWeeks(weeks);
 
-        // Buscar registros das últimas N semanas
-        List<WeightHistory> recentHistory = weightHistoryRepository
-                .findByUserAndRecordedDateAfterOrderByRecordedDateAsc(currentUser, nWeeksAgo);
-
-        if (recentHistory.size() < 2) {
-            return BigDecimal.ZERO;
-        }
-
-        WeightHistory firstRecord = recentHistory.get(0);
-        WeightHistory lastRecord = recentHistory.get(recentHistory.size() - 1);
-
-        BigDecimal weightChange = lastRecord.getWeight().subtract(firstRecord.getWeight());
-        long daysDiff = firstRecord.getRecordedDate().until(lastRecord.getRecordedDate()).getDays();
-
-        if (daysDiff <= 0) {
-            return BigDecimal.ZERO;
-        }
-
-        // Normalizar para semanas
-        double actualWeeks = daysDiff / 7.0;
-        BigDecimal weeklyChange = weightChange.divide(
-                BigDecimal.valueOf(actualWeeks), 3, RoundingMode.HALF_UP);
-
-        return weeklyChange;
-    }
 
     public TotalDailyEnergyExpenditureCalculationResponse getTotalDailyEnergyExpenditureCalculation(User currentUser) {
         try {

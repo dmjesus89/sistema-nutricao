@@ -67,8 +67,8 @@ public class MealReminderService {
         try {
             // Get all template meals for this user (not one-time meals)
             List<Meal> userMeals = mealRepository.findByUserOrderByMealTimeAsc(user).stream()
-                .filter(Meal::getIsTemplate)
-                .collect(Collectors.toList());
+                    .filter(Meal::getIsTemplate)
+                    .collect(Collectors.toList());
 
             for (Meal meal : userMeals) {
                 LocalTime mealTime = meal.getMealTime();
@@ -77,7 +77,7 @@ public class MealReminderService {
                 if (isMealTimeInWindow(mealTime, currentTime, reminderWindow)) {
                     // Check if meal was already consumed today
                     boolean alreadyConsumed = meal.getConsumptions().stream()
-                        .anyMatch(consumption -> consumption.getConsumptionDate().equals(LocalDate.now()));
+                            .anyMatch(consumption -> consumption.getConsumptionDate().equals(LocalDate.now()));
 
                     if (!alreadyConsumed) {
                         sendMealReminder(user, meal);
@@ -107,11 +107,11 @@ public class MealReminderService {
             String mealDetails = buildMealDetails(meal);
 
             emailService.sendMealReminderEmail(
-                user.getEmail(),
-                user.getFirstName(),
-                mealName,
-                mealTime,
-                mealDetails
+                    user.getEmail(),
+                    user.getFirstName(),
+                    mealName,
+                    mealTime,
+                    mealDetails
             );
 
             log.info("Meal reminder sent to user {} for meal: {}", user.getEmail(), mealName);
@@ -143,30 +143,16 @@ public class MealReminderService {
 
         // Add nutritional summary
         details.append(String.format(
-            "<p style='margin: 10px 0 0 0; font-size: 12px; color: #666;'>" +
-            "<strong>Total:</strong> %.0f kcal | Proteína: %.1fg | Carbs: %.1fg | Gordura: %.1fg</p>",
-            meal.getTotalCalories().doubleValue(),
-            meal.getTotalProtein().doubleValue(),
-            meal.getTotalCarbs().doubleValue(),
-            meal.getTotalFat().doubleValue()
+                "<p style='margin: 10px 0 0 0; font-size: 12px; color: #666;'>" +
+                        "<strong>Total:</strong> %.0f kcal | Proteína: %.1fg | Carbs: %.1fg | Gordura: %.1fg</p>",
+                meal.getTotalCalories().doubleValue(),
+                meal.getTotalProtein().doubleValue(),
+                meal.getTotalCarbs().doubleValue(),
+                meal.getTotalFat().doubleValue()
         ));
 
         return details.toString();
     }
 
-    /**
-     * Manual method to send immediate reminder for a specific meal
-     * Can be called from a controller endpoint if needed
-     */
-    public void sendImmediateMealReminder(Long mealId, User user) {
-        try {
-            Meal meal = mealRepository.findByIdAndUser(mealId, user)
-                .orElseThrow(() -> new IllegalArgumentException("Meal not found"));
 
-            sendMealReminder(user, meal);
-        } catch (Exception e) {
-            log.error("Error sending immediate meal reminder: {}", e.getMessage());
-            throw new RuntimeException("Failed to send meal reminder", e);
-        }
-    }
 }

@@ -12,7 +12,5 @@ public interface GoalConfigRepository extends JpaRepository<GoalConfig, Long> {
 
     List<GoalConfig> findByActiveOrderByDisplayOrder(Boolean active);
 
-    Optional<GoalConfig> findByCode(String code);
-
     Optional<GoalConfig> findByCodeAndActive(String code, Boolean active);
 }

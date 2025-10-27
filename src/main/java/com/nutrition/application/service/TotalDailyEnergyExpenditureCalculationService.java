@@ -197,15 +197,7 @@ public class TotalDailyEnergyExpenditureCalculationService {
         return weeksDecimal.intValue();
     }
 
-    /**
-     * Obtém o ajuste calórico da configuração do banco de dados
-     */
-    private GoalConfig getGoalConfigFromDatabase(UserProfile.Goal goal) {
-        return goalConfigRepository
-                .findByCodeAndActive(goal.name(), true)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Goal configuration not found for: " + goal.name()));
-    }
+
 
     /**
      * Verifica se os dados são suficientes para cálculos
