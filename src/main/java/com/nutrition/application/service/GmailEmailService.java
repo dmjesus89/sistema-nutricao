@@ -25,10 +25,10 @@ public class GmailEmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${app.gmail.from}")
+    //@Value("${app.gmail.from}")
     private String fromEmail;
 
-    @Value("${app.frontend.url}")
+    //@Value("${app.frontend.url}")
     private String frontEndUrl;
 
     @Async
