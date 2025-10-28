@@ -63,7 +63,6 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
                                      @Param("minFiber") BigDecimal minFiber,
                                      @Param("maxSodium") BigDecimal maxSodium,
                                      @Param("barcode") String barcode,
-                                     @Param("verifiedOnly") Boolean verifiedOnly,
                                      Pageable pageable);
 
 

@@ -179,8 +179,7 @@ public class FoodService {
                         searchRequest.getMaxFat(),
                         searchRequest.getMinFiber(),
                         searchRequest.getMaxSodium(),
-                        null, // barcode not used for search
-                        searchRequest.getVerifiedOnly(),
+                        null,
                         pageable
                 );
             } else {
