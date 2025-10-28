@@ -193,11 +193,11 @@ public class FoodService {
                     .filter(food -> applyUserPreferenceFilter(food, currentUser, searchRequest))
                     .collect(java.util.stream.Collectors.toList());
 
-            // Convert filtered list back to Page
+            // Convert filtered list back to Page with correct total count
             Page<Food> filteredFoods = new org.springframework.data.domain.PageImpl<>(
                     filteredList,
                     pageable,
-                    filteredList.size()
+                    foods.getTotalElements()  // Use original database count, not filtered list size
             );
 
             Page<FoodResponse> responses = filteredFoods.map(food -> buildFoodResponse(food, currentUser));
