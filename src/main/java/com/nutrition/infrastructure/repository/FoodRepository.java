@@ -42,6 +42,7 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
     @Query(value = "SELECT f.* FROM foods f WHERE f.active = true AND " +
             "(:name IS NULL OR remove_accents(LOWER(f.name)) LIKE remove_accents(LOWER(CONCAT('%', :name, '%')))) AND " +
             "(:category IS NULL OR f.category = CAST(:category AS text)) AND " +
+            "(:brand IS NULL OR remove_accents(LOWER(f.brand)) LIKE remove_accents(LOWER(CONCAT('%', :brand, '%')))) AND " +
             "(:minCalories IS NULL OR f.calories_per_100g >= :minCalories) AND " +
             "(:maxCalories IS NULL OR f.calories_per_100g <= :maxCalories) AND " +
             "(:minProtein IS NULL OR f.protein_per_100g >= :minProtein) AND " +
@@ -49,10 +50,12 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
             "(:maxFat IS NULL OR f.fat_per_100g <= :maxFat) AND " +
             "(:minFiber IS NULL OR f.fiber_per_100g IS NULL OR f.fiber_per_100g >= :minFiber) AND " +
             "(:maxSodium IS NULL OR f.sodium_per_100g IS NULL OR f.sodium_per_100g <= :maxSodium) AND " +
-            "(:barcode IS NULL OR f.barcode = :barcode) " +
+            "(:barcode IS NULL OR f.barcode = :barcode) AND " +
+            "(:verifiedOnly IS NULL OR :verifiedOnly = false OR f.verified = true) " +
             "ORDER BY f.name ASC", nativeQuery = true)
     Page<Food> findByAdvancedFilters(@Param("name") String name,
                                      @Param("category") String category,
+                                     @Param("brand") String brand,
                                      @Param("minCalories") BigDecimal minCalories,
                                      @Param("maxCalories") BigDecimal maxCalories,
                                      @Param("minProtein") BigDecimal minProtein,
@@ -61,6 +64,7 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
                                      @Param("minFiber") BigDecimal minFiber,
                                      @Param("maxSodium") BigDecimal maxSodium,
                                      @Param("barcode") String barcode,
+                                     @Param("verifiedOnly") Boolean verifiedOnly,
                                      Pageable pageable);
 
 

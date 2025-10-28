@@ -149,6 +149,10 @@ public class Food {
         return proteinPer100g.compareTo(BigDecimal.valueOf(20)) >= 0;
     }
 
+    public boolean isLowCarb() {
+        return carbsPer100g.compareTo(BigDecimal.valueOf(5)) <= 0;
+    }
+
     public boolean isHighFiber() {
         return fiberPer100g != null && fiberPer100g.compareTo(BigDecimal.valueOf(6)) >= 0;
     }

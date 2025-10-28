@@ -170,15 +170,17 @@ public class FoodService {
             if (hasSearchCriteria(searchRequest)) {
                 foods = foodRepository.findByAdvancedFilters(
                         searchRequest.getName(),
-                        searchRequest.getCategory() != null ? searchRequest.getCategory() : null,
+                        searchRequest.getCategory(),
+                        searchRequest.getBrand(),
                         searchRequest.getMinCalories(),
                         searchRequest.getMaxCalories(),
                         searchRequest.getMinProtein(),
                         searchRequest.getMaxCarbs(),
-                        null,
-                        null,
-                        null,
-                        null,
+                        searchRequest.getMaxFat(),
+                        searchRequest.getMinFiber(),
+                        searchRequest.getMaxSodium(),
+                        null, // barcode not used for search
+                        searchRequest.getVerifiedOnly(),
                         pageable
                 );
             } else {
@@ -186,9 +188,22 @@ public class FoodService {
                 foods = foodRepository.findByActiveTrueOrderByNameAsc(pageable);
             }
 
-            Page<FoodResponse> responses = foods.map(food -> buildFoodResponse(food, currentUser));
+            // Apply post-filters for boolean flags (highProtein, lowCarb, highFiber)
+            List<Food> filteredList = foods.getContent().stream()
+                    .filter(food -> applyBooleanFilters(food, searchRequest))
+                    .filter(food -> applyUserPreferenceFilter(food, currentUser, searchRequest))
+                    .collect(java.util.stream.Collectors.toList());
 
-            log.info("Food search completed: {} results", foods.getTotalElements());
+            // Convert filtered list back to Page
+            Page<Food> filteredFoods = new org.springframework.data.domain.PageImpl<>(
+                    filteredList,
+                    pageable,
+                    filteredList.size()
+            );
+
+            Page<FoodResponse> responses = filteredFoods.map(food -> buildFoodResponse(food, currentUser));
+
+            log.info("Food search completed: {} results", responses.getTotalElements());
             return responses;
 
         } catch (IllegalArgumentException e) {
@@ -198,6 +213,40 @@ public class FoodService {
             log.error("Error searching foods: {}", e.getMessage());
             throw new UnprocessableEntityException("Erro interno do servidor");
         }
+    }
+
+    /**
+     * Apply boolean filters (highProtein, lowCarb, highFiber)
+     */
+    private boolean applyBooleanFilters(Food food, FoodSearchRequest request) {
+        if (Boolean.TRUE.equals(request.getHighProtein()) && !food.isHighProtein()) {
+            return false;
+        }
+        if (Boolean.TRUE.equals(request.getLowCarb()) && !food.isLowCarb()) {
+            return false;
+        }
+        if (Boolean.TRUE.equals(request.getHighFiber()) && !food.isHighFiber()) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Apply user preference filter (FAVORITE, DISLIKED, etc.)
+     */
+    private boolean applyUserPreferenceFilter(Food food, User currentUser, FoodSearchRequest request) {
+        if (request.getUserPreference() == null || request.getUserPreference().isEmpty()) {
+            return true; // No filter applied
+        }
+
+        if (currentUser == null) {
+            return false; // Can't filter by preference if not logged in
+        }
+
+        // Get user's preference for this food
+        return preferenceRepository.findByUserAndFood(currentUser, food)
+                .map(pref -> pref.getPreferenceType().name().equals(request.getUserPreference()))
+                .orElse(false);
     }
 
     public FoodResponse getFoodById(Long foodId) {
@@ -432,7 +481,8 @@ public class FoodService {
                 Boolean.TRUE.equals(request.getVerifiedOnly()) ||
                 Boolean.TRUE.equals(request.getHighProtein()) ||
                 Boolean.TRUE.equals(request.getLowCarb()) ||
-                Boolean.TRUE.equals(request.getHighFiber());
+                Boolean.TRUE.equals(request.getHighFiber()) ||
+                (request.getUserPreference() != null && !request.getUserPreference().isEmpty());
     }
 
     private FoodResponse buildFoodResponse(Food food, User currentUser) {

@@ -55,4 +55,7 @@ public class FoodSearchRequest {
 
     @JsonProperty("highFiber")
     private Boolean highFiber; // >= 6g per 100g
+
+    @JsonProperty("userPreference")
+    private String userPreference; // FAVORITE, DISLIKED, etc.
 }
