@@ -31,7 +31,7 @@ public class MealReminderService {
      * Scheduled task that runs every 5 minutes to check for meal reminders
      * Cron expression: At second 0, every 5 minutes
      */
-    @Scheduled(cron = "0 */5 * * * *")
+    @Scheduled(cron = "0 */2 * * * *")
     @Transactional(readOnly = true)
     public void checkMealReminders() {
         log.debug("Running meal reminder check...");

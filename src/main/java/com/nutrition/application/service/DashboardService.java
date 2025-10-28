@@ -32,7 +32,6 @@ import java.util.Optional;
 public class DashboardService {
 
     private final UserProfileRepository profileRepository;
-    private final SupplementRepository supplementRepository;
     private final UserSupplementRepository userSupplementRepository;
     private final UserFoodPreferenceRepository foodPreferenceRepository;
     private final WeightHistoryRepository weightHistoryRepository;
@@ -41,11 +40,8 @@ public class DashboardService {
         try {
             Map<String, Object> stats = new HashMap<>();
             stats.put("totalFoodPreferences", foodPreferenceRepository.findByUserAndPreferenceTypes(user, Arrays.stream(UserFoodPreference.PreferenceType.values()).toList()).size());
-            stats.put("totalSupplementPreferences", 0); // DEPRECATED: Preference types removed
             stats.put("favoriteFoods", foodPreferenceRepository.findByUserAndPreferenceTypeFavorite(user).size());
-            stats.put("favoriteSupplements", 0); // DEPRECATED: Preference types removed
             stats.put("currentSupplements", userSupplementRepository.countByUser(user));
-
 
             stats.put("weightRecords", weightHistoryRepository.countByUser(user));
             Optional<UserProfile> profile = profileRepository.findByUser(user);

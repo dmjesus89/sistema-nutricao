@@ -93,14 +93,6 @@ public class SupplementController {
         return ResponseEntity.ok(response);
     }
 
-    // ========== DEPRECATED ENDPOINTS - Removed in favor of frequency-based tracking ==========
-    // Old preference-based endpoints removed:
-    // - POST /{id}/preference (use POST /{id}/track instead)
-    // - DELETE /{id}/preference (use DELETE /{id}/track instead)
-    // - PUT /{id}/time-routine (use PUT /{id}/frequency instead)
-    // - GET /favorites (no direct replacement - preferences concept removed)
-    // - GET /preferences (use GET /my-supplements instead)
-    // - GET /current (use GET /my-supplements instead)
 
     @GetMapping("/recommended")
     @Operation(summary = "Suplementos recomendados", description = "Lista suplementos recomendados baseados nas preferências do usuário")
@@ -113,15 +105,6 @@ public class SupplementController {
         return ResponseEntity.ok(response);
     }
 
-    @PatchMapping("/{id}/verify")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Verificar suplemento", description = "Marca um suplemento como verificado (apenas admins)")
-    @PreAuthorize("hasRole('ADMIN')")
-    public void verifySupplement(
-            @Parameter(description = "ID do suplemento") @PathVariable Long id) {
-        log.info("Verify supplement request for ID: {}", id);
-        supplementService.verifySupplement(id);
-    }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

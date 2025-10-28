@@ -23,7 +23,7 @@ public class SupplementReminderService {
     private final BrevoEmailService emailService;
 
 
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(cron = "0 */2 * * * *")
     @Transactional(readOnly = true)
     public void sendSupplementReminders() {
         log.info("Running supplement reminder scheduler...");
@@ -32,7 +32,6 @@ public class SupplementReminderService {
         LocalDate currentDate = LocalDate.now();
         DayOfWeek currentDay = currentDate.getDayOfWeek();
 
-        // Find all user supplements with email reminders enabled
         List<UserSupplement> userSupplements = userSupplementRepository.findByEmailReminderEnabledTrue();
 
         log.info("Found {} user supplements with email reminders enabled", userSupplements.size());

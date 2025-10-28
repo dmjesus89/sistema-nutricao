@@ -388,13 +388,6 @@ public class SupplementService {
     }
 
 
-    // DEPRECATED: getUserPreferences removed - use getUserSupplements() instead for frequency-based tracking
-
-    // ========== NEW SUPPLEMENT TRACKING METHODS (Frequency-based) ==========
-
-    /**
-     * Add a supplement to user's tracking list with frequency settings
-     */
     @Transactional
     public UserSupplementResponse addSupplement(Long supplementId, AddSupplementRequest request) {
         try {
@@ -420,7 +413,7 @@ public class SupplementService {
                     .dosageTime(request.getDosageTime() != null ?
                             java.time.LocalTime.parse(request.getDosageTime()) : null)
                     .daysOfWeek(request.getDaysOfWeek())
-                    .emailReminderEnabled(request.getEmailReminderEnabled())
+                    .emailReminderEnabled(true)
                     .build();
 
             userSupplement = userSupplementRepository.save(userSupplement);
@@ -438,6 +431,7 @@ public class SupplementService {
                             .dosageTime(dosageTime)
                             .label(scheduleRequest.getLabel())
                             .build();
+
 
                     userSupplementScheduleRepository.save(schedule);
                     log.info("Schedule added: {} at {} for user supplement ID {}",
