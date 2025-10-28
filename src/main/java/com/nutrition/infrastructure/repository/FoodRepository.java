@@ -50,8 +50,7 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
             "(:maxFat IS NULL OR f.fat_per_100g <= :maxFat) AND " +
             "(:minFiber IS NULL OR f.fiber_per_100g IS NULL OR f.fiber_per_100g >= :minFiber) AND " +
             "(:maxSodium IS NULL OR f.sodium_per_100g IS NULL OR f.sodium_per_100g <= :maxSodium) AND " +
-            "(:barcode IS NULL OR f.barcode = :barcode) AND " +
-            "(:verifiedOnly IS NULL OR :verifiedOnly = false OR f.verified = true) " +
+            "(:barcode IS NULL OR f.barcode = :barcode) " +
             "ORDER BY f.name ASC", nativeQuery = true)
     Page<Food> findByAdvancedFilters(@Param("name") String name,
                                      @Param("category") String category,
