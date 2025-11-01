@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.ArrayList;
@@ -89,14 +90,18 @@ public class ProfileValidationService {
                 if (currentWeight != null && targetWeight != null) {
                     BigDecimal weightDifference = targetWeight.subtract(currentWeight);
                     double weeksToTarget = daysToTarget / 7.0;
-                    BigDecimal weeklyWeightChange = weightDifference.divide(BigDecimal.valueOf(weeksToTarget), 3, BigDecimal.ROUND_HALF_UP);
 
-                    // Taxa saudável: 0.25kg - 1kg por semana
-                    BigDecimal absWeeklyChange = weeklyWeightChange.abs();
-                    if (absWeeklyChange.compareTo(MAX_HEALTHY_WEEKLY_WEIGHT_CHANGE) > 0) {
-                        warnings.add(String.format("Taxa de mudança de peso muito alta (%.2f kg/semana). Recomendado máximo 1kg/semana.", absWeeklyChange));
-                    } else if (absWeeklyChange.compareTo(MIN_HEALTHY_WEEKLY_WEIGHT_CHANGE) < 0) {
-                        warnings.add(String.format("Taxa de mudança de peso muito baixa (%.2f kg/semana). Recomendado mínimo 0.25kg/semana.", absWeeklyChange));
+                    // Evitar divisão por zero quando a data alvo é muito próxima
+                    if (weeksToTarget > 0) {
+                        BigDecimal weeklyWeightChange = weightDifference.divide(BigDecimal.valueOf(weeksToTarget), 3, RoundingMode.HALF_UP);
+
+                        // Taxa saudável: 0.25kg - 1kg por semana
+                        BigDecimal absWeeklyChange = weeklyWeightChange.abs();
+                        if (absWeeklyChange.compareTo(MAX_HEALTHY_WEEKLY_WEIGHT_CHANGE) > 0) {
+                            warnings.add(String.format("Taxa de mudança de peso muito alta (%.2f kg/semana). Recomendado máximo 1kg/semana.", absWeeklyChange));
+                        } else if (absWeeklyChange.compareTo(MIN_HEALTHY_WEEKLY_WEIGHT_CHANGE) < 0) {
+                            warnings.add(String.format("Taxa de mudança de peso muito baixa (%.2f kg/semana). Recomendado mínimo 0.25kg/semana.", absWeeklyChange));
+                        }
                     }
                 }
             }
@@ -153,10 +158,13 @@ public class ProfileValidationService {
             if (daysToTarget > 0) {
                 BigDecimal weightDifference = profile.getTargetWeight().subtract(profile.getCurrentWeight());
                 double weeksToTarget = daysToTarget / 7.0;
-                BigDecimal weeklyWeightChange = weightDifference.divide(
-                        BigDecimal.valueOf(weeksToTarget), 3, BigDecimal.ROUND_HALF_UP);
 
-                // Validar se o objetivo é realista para a data
+                // Evitar divisão por zero quando a data alvo é muito próxima
+                if (weeksToTarget > 0) {
+                    BigDecimal weeklyWeightChange = weightDifference.divide(
+                            BigDecimal.valueOf(weeksToTarget), 3, RoundingMode.HALF_UP);
+
+                    // Validar se o objetivo é realista para a data
                 // Calculate calorie adjustment from profile's TDEE and daily calorie target
                 if (profile.getDailyCalorieTarget() != null && profile.getTotalDailyEnergyExpenditure() != null) {
                     BigDecimal calorieAdjustment = profile.getTotalDailyEnergyExpenditure().subtract(profile.getDailyCalorieTarget());
@@ -170,6 +178,7 @@ public class ProfileValidationService {
                     if (requiredWeeklyChange.compareTo(expectedWeeklyWeightLoss.multiply(BigDecimal.valueOf(1.5))) > 0) {
                         warnings.add("Objetivo pode ser difícil de alcançar na data definida com o déficit calórico atual. " +
                                 "Considere ajustar a data ou o objetivo.");
+                    }
                     }
                 }
             }
@@ -245,7 +254,12 @@ public class ProfileValidationService {
         BigDecimal weightDifference = profile.getTargetWeight().subtract(profile.getCurrentWeight());
         double weeksToTarget = daysToTarget / 7.0;
 
-        return weightDifference.divide(BigDecimal.valueOf(weeksToTarget), 3, BigDecimal.ROUND_HALF_UP);
+        // Evitar divisão por zero quando a data alvo é muito próxima
+        if (weeksToTarget <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        return weightDifference.divide(BigDecimal.valueOf(weeksToTarget), 3, RoundingMode.HALF_UP);
     }
 
     /**
@@ -347,10 +361,10 @@ public class ProfileValidationService {
             return null;
         }
 
-        BigDecimal heightInMeters = height.divide(BigDecimal.valueOf(100), 4, BigDecimal.ROUND_HALF_UP);
+        BigDecimal heightInMeters = height.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
         BigDecimal heightSquared = heightInMeters.multiply(heightInMeters);
 
-        return weight.divide(heightSquared, 2, BigDecimal.ROUND_HALF_UP);
+        return weight.divide(heightSquared, 2, RoundingMode.HALF_UP);
     }
 
 
