@@ -455,7 +455,7 @@ public class ProfileService {
                     log.info("Updated current weight to: {}", newLatestWeight.getWeight());
 
                     // Recalculate metabolic data with new current weight
-                    calculationService.calculateAndSaveTotalDailyEnergyExpenditure(currentUser);
+                    calculationService.updateMetabolicCalculations(profile);
                 }
             }
 
