@@ -22,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -104,6 +105,15 @@ public class ProfileController {
         log.info("Weight stats request received");
         WeightStatsResponse response = profileService.getWeightStats(user);
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/weight/{id}")
+    @Operation(summary = "Remover peso", description = "Remove um registro específico de peso do histórico")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteWeightRecord(@CurrentUser User user, @PathVariable Long id) {
+        log.info("Weight delete request received for id: {}", id);
+        profileService.deleteWeightRecord(user, id);
     }
 
     @GetMapping("/totalDailyEnergyExpenditure")

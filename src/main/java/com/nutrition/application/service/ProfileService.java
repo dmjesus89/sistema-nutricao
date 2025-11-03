@@ -416,6 +416,58 @@ public class ProfileService {
         }
     }
 
+    @Transactional
+    public void deleteWeightRecord(User currentUser, Long weightId) {
+        try {
+            // Find the weight record
+            WeightHistory weightRecord = weightHistoryRepository.findById(weightId)
+                    .orElseThrow(() -> new NotFoundException("Registro de peso não encontrado"));
+
+            // Verify the weight record belongs to the current user
+            if (!weightRecord.getUser().getId().equals(currentUser.getId())) {
+                throw new UnprocessableEntityException("Você não tem permissão para remover este registro");
+            }
+
+            // Get user profile
+            UserProfile profile = profileRepository.findByUser(currentUser)
+                    .orElseThrow(() -> new NotFoundException("Perfil não encontrado"));
+
+            // Check if this is the initial weight (first recorded)
+            WeightHistory firstWeight = weightHistoryRepository.findFirstWeightByUser(currentUser).orElse(null);
+            if (firstWeight != null && firstWeight.getId().equals(weightId)) {
+                throw new UnprocessableEntityException("Não é possível remover o peso inicial");
+            }
+
+            // Check if this is the most recent weight
+            WeightHistory latestWeight = weightHistoryRepository.findLatestByUser(currentUser).orElse(null);
+            boolean isDeletingLatest = latestWeight != null && latestWeight.getId().equals(weightId);
+
+            // Delete the weight record
+            weightHistoryRepository.deleteById(weightId);
+            log.info("Weight record deleted successfully: {}", weightId);
+
+            // If we deleted the latest weight, update the current weight in profile
+            if (isDeletingLatest) {
+                WeightHistory newLatestWeight = weightHistoryRepository.findLatestByUser(currentUser).orElse(null);
+                if (newLatestWeight != null) {
+                    profile.setCurrentWeight(newLatestWeight.getWeight());
+                    profileRepository.save(profile);
+                    log.info("Updated current weight to: {}", newLatestWeight.getWeight());
+
+                    // Recalculate metabolic data with new current weight
+                    calculationService.calculateAndSaveTotalDailyEnergyExpenditure(currentUser);
+                }
+            }
+
+        } catch (NotFoundException | UnprocessableEntityException e) {
+            log.error("Error deleting weight record: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error deleting weight record: {}", e.getMessage());
+            throw new UnprocessableEntityException("Erro ao remover registro de peso");
+        }
+    }
+
     public WeightStatsResponse getWeightStats(User currentUser) {
         try {
             UserProfile profile = profileRepository.findByUser(currentUser)
