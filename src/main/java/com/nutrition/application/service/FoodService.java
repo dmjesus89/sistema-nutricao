@@ -166,10 +166,13 @@ public class FoodService {
             Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
             Page<Food> foods;
 
+            // Support both 'name' and 'query' parameters (query is an alias for name)
+            String searchName = searchRequest.getName() != null ? searchRequest.getName() : searchRequest.getQuery();
+
             // Se tem critérios de busca, usar busca avançada
             if (hasSearchCriteria(searchRequest)) {
                 foods = foodRepository.findByAdvancedFilters(
-                        searchRequest.getName(),
+                        searchName,
                         searchRequest.getCategory(),
                         searchRequest.getBrand(),
                         searchRequest.getMinCalories(),
@@ -468,6 +471,7 @@ public class FoodService {
 
     private boolean hasSearchCriteria(FoodSearchRequest request) {
         return request.getName() != null ||
+                request.getQuery() != null ||
                 request.getCategory() != null ||
                 request.getBrand() != null ||
                 request.getMinCalories() != null ||

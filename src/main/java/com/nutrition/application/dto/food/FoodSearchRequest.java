@@ -17,6 +17,9 @@ public class FoodSearchRequest {
     @JsonProperty("name")
     private String name;
 
+    @JsonProperty("query")
+    private String query; // Alias for name - used for general search
+
     @JsonProperty("category")
     private String category;
 
