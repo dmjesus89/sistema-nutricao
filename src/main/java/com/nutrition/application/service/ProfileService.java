@@ -606,20 +606,25 @@ public class ProfileService {
     }
 
     private ProfileResponse buildProfileResponse(UserProfile profile) {
+        // Get user's preferred locale for translations
+        String locale = profile.getUser() != null && profile.getUser().getPreferredLocale() != null
+            ? profile.getUser().getPreferredLocale()
+            : "en";
+
         return ProfileResponse.builder()
                 .id(profile.getId())
                 .birthDate(profile.getBirthDate())
                 .age(profile.getAge())
                 .gender(profile.getGender().name())
-                .genderDisplay(profile.getGender().getDisplayName())
+                .genderDisplay(translateGender(profile.getGender(), locale))
                 .height(profile.getHeight())
                 .currentWeight(profile.getCurrentWeight())
                 .targetWeight(profile.getTargetWeight())
                 .targetDate(profile.getTargetDate())
                 .activityLevel(profile.getActivityLevel().name())
-                .activityLevelDisplay(profile.getActivityLevel().getDisplayName())
+                .activityLevelDisplay(translateActivityLevel(profile.getActivityLevel(), locale))
                 .goal(profile.getGoal().name())
-                .goalDisplay(profile.getGoal().getDisplayName())
+                .goalDisplay(translateGoal(profile.getGoal(), locale))
                 .basalMetabolicRate(profile.getBasalMetabolicRate())
                 .totalDailyEnergyExpenditure(profile.getTotalDailyEnergyExpenditure())
                 .dailyCalorieTarget(profile.getDailyCalorieTarget())
@@ -632,6 +637,64 @@ public class ProfileService {
                 .updatedAt(profile.getUpdatedAt() != null ?
                         profile.getUpdatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null)
                 .build();
+    }
+
+    private String translateGender(UserProfile.Gender gender, String locale) {
+        if (locale.equals("es")) {
+            return switch (gender) {
+                case MALE -> "Masculino";
+                case FEMALE -> "Femenino";
+                case OTHER -> "Otro";
+            };
+        } else if (locale.equals("pt")) {
+            return switch (gender) {
+                case MALE -> "Masculino";
+                case FEMALE -> "Feminino";
+                case OTHER -> "Outro";
+            };
+        }
+        // Default to English
+        return gender.getDisplayName();
+    }
+
+    private String translateActivityLevel(UserProfile.ActivityLevel activityLevel, String locale) {
+        if (locale.equals("es")) {
+            return switch (activityLevel) {
+                case SEDENTARY -> "Sedentario";
+                case LIGHTLY_ACTIVE -> "Ligeramente Activo";
+                case MODERATELY_ACTIVE -> "Moderadamente Activo";
+                case VERY_ACTIVE -> "Muy Activo";
+                case EXTREMELY_ACTIVE -> "Extremadamente Activo";
+            };
+        } else if (locale.equals("pt")) {
+            return switch (activityLevel) {
+                case SEDENTARY -> "Sedentário";
+                case LIGHTLY_ACTIVE -> "Levemente Ativo";
+                case MODERATELY_ACTIVE -> "Moderadamente Ativo";
+                case VERY_ACTIVE -> "Muito Ativo";
+                case EXTREMELY_ACTIVE -> "Extremamente Ativo";
+            };
+        }
+        // Default to English
+        return activityLevel.getDisplayName();
+    }
+
+    private String translateGoal(UserProfile.Goal goal, String locale) {
+        if (locale.equals("es")) {
+            return switch (goal) {
+                case LOSE_WEIGHT -> "Perder Grasa/Mantener Músculo";
+                case MAINTAIN_WEIGHT -> "Mantener Peso";
+                case GAIN_WEIGHT -> "Ganar Peso";
+            };
+        } else if (locale.equals("pt")) {
+            return switch (goal) {
+                case LOSE_WEIGHT -> "Perder Gordura/Manter Músculo";
+                case MAINTAIN_WEIGHT -> "Manter Peso";
+                case GAIN_WEIGHT -> "Ganhar Peso";
+            };
+        }
+        // Default to English
+        return goal.getDisplayName();
     }
 
     private WeightHistoryResponse buildWeightHistoryResponse(WeightHistory record, User user) {

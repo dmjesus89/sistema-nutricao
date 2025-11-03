@@ -179,7 +179,7 @@ public class FoodService {
                         searchRequest.getMaxFat(),
                         searchRequest.getMinFiber(),
                         searchRequest.getMaxSodium(),
-                        null,
+                        null, // barcode
                         pageable
                 );
             } else {
