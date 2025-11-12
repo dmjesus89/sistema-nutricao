@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -66,6 +67,13 @@ public class SupplementReminderService {
     private boolean shouldSendReminder(UserSupplement userSupplement, LocalTime currentTime, DayOfWeek currentDay) {
         // Check if dosage time is set
         if (userSupplement.getDosageTime() == null) {
+            return false;
+        }
+
+        // Check if supplement was already taken today
+        if (wasSupplementTakenToday(userSupplement)) {
+            log.debug("Skipping reminder for supplement {} - already taken today",
+                     userSupplement.getSupplement().getName());
             return false;
         }
 
@@ -161,6 +169,13 @@ public class SupplementReminderService {
             LocalTime currentTime,
             DayOfWeek currentDay) {
 
+        // Check if supplement was already taken today
+        if (wasSupplementTakenToday(userSupplement)) {
+            log.debug("Skipping reminder for supplement {} - already taken today",
+                     userSupplement.getSupplement().getName());
+            return false;
+        }
+
         // Check if current time matches schedule dosage time (within 30 minutes)
         LocalTime dosageTime = schedule.getDosageTime();
         long minutesDifference = Math.abs(
@@ -233,5 +248,23 @@ public class SupplementReminderService {
         } catch (Exception e) {
             log.error("Failed to send supplement reminder email for schedule", e);
         }
+    }
+
+    /**
+     * Checks if the supplement was already taken today
+     * @param userSupplement The user supplement to check
+     * @return true if lastTakenAt is today, false otherwise
+     */
+    private boolean wasSupplementTakenToday(UserSupplement userSupplement) {
+        LocalDateTime lastTakenAt = userSupplement.getLastTakenAt();
+
+        if (lastTakenAt == null) {
+            return false;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate lastTakenDate = lastTakenAt.toLocalDate();
+
+        return lastTakenDate.equals(today);
     }
 }
